@@ -9,6 +9,7 @@ class Event(db.Model):
     __tablename__ = "events"
 
     id: int = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    uid: int = db.Column(db.Integer, nullable=False)
     name: str = db.Column(db.String(20), nullable=False)
     type: str = db.Column(db.String(3), nullable=False)
     source: str = db.Column(db.String(20), nullable=False)

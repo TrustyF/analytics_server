@@ -13,12 +13,14 @@ bp = Blueprint('event', __name__)
 
 @bp.route("/add", methods=['GET'])
 def add():
+    event_uid = int(request.args.get('uid'))
     event_name = request.args.get('name')
     event_source = request.args.get('source')
     event_type = request.args.get('type')
     event_info = request.args.get('info')
 
     new_event = Event(
+        uid=event_uid,
         name=event_name,
         source=event_source,
         type=event_type,
