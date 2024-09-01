@@ -22,11 +22,15 @@ if dev_mode:
     app.config["SQLALCHEMY_DATABASE_URI"] = local_database_uri
 else:
     app.config["SQLALCHEMY_DATABASE_URI"] = database_uri
+    logging.disable(logging.WARNING)
+
+app.config["SQLALCHEMY_ENGINE_OPTIONS "] = {
+    'pool_recycle': 280,
+    'pool_pre_ping': True
+}
 
 with app.app_context():
     db.init_app(app)
-
-    # logging.disable(logging.WARNING)
 
     # from sql_models.event_model import *
     # db.create_all()
