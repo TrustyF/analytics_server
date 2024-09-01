@@ -1,4 +1,5 @@
 import json
+import pprint
 from datetime import datetime
 from dataclasses import asdict
 
@@ -56,18 +57,19 @@ def get():
     entry_index = 0
     sorted_data = []
 
-    for date, s_events in groupby(mapped_events, key=lambda x: x['timestamp'].date()):
+    for date, f_events in groupby(sorted(mapped_events, key=lambda y: y['timestamp']),
+                                  key=lambda x: x['timestamp'].date()):
         sorted_data.append({
             'date': date.strftime('%d/%m/%Y'),
             'source': {}
         })
-        for source, events in groupby(s_events, key=lambda x: x['source']):
+        for source, j_events in groupby(sorted(f_events, key=lambda y: y['source']), key=lambda x: x['source']):
 
             sorted_data[entry_index]['source'][source] = {
                 'users': {}
             }
 
-            for user_id, value in groupby(events, key=lambda x: x['uid']):
+            for user_id, value in groupby(sorted(j_events, key=lambda y: y['uid']), key=lambda x: x['uid']):
                 all_val = list(sorted(value, key=lambda y: y['timestamp']))
 
                 sorted_data[entry_index]['source'][source]['users'][user_id] = {}
@@ -91,5 +93,4 @@ def get():
         entry_index += 1
 
     sorted_data.sort(key=lambda x: x['date'], reverse=True)
-
     return sorted_data
