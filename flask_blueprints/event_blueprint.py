@@ -52,32 +52,38 @@ def get():
     entry_index = 0
     sorted_data = []
 
-    for date, events in groupby(mapped_events, key=lambda x: x['timestamp'].date()):
+    for date, s_events in groupby(mapped_events, key=lambda x: x['timestamp'].date()):
         sorted_data.append({
             'date': date.strftime('%d/%m/%Y'),
-            'users': {}
+            'source': {}
         })
-        for user_id, value in groupby(events, key=lambda x: x['uid']):
-            all_val = list(sorted(value, key=lambda y: y['timestamp']))
+        for source, events in groupby(s_events, key=lambda x: x['source']):
 
-            sorted_data[entry_index]['users'][user_id] = {}
-            sorted_data[entry_index]['users'][user_id]['events'] = []
+            sorted_data[entry_index]['source'][source] = {
+                'users': {}
+            }
 
-            for i, x in enumerate(all_val):
-                temp = {
-                    'event_name': x['name'],
-                    'event_type': x['type'],
-                    'event_info': x['info'],
-                    'timestamp': x['timestamp'],
-                    'diff': 0
-                }
+            for user_id, value in groupby(events, key=lambda x: x['uid']):
+                all_val = list(sorted(value, key=lambda y: y['timestamp']))
 
-                try:
-                    temp['diff'] = round((all_val[i + 1]['timestamp'] - x['timestamp']).total_seconds(), 2)
-                except Exception:
-                    temp['diff'] = 0.0
+                sorted_data[entry_index]['source'][source]['users'][user_id] = {}
+                sorted_data[entry_index]['source'][source]['users'][user_id]['events'] = []
 
-                sorted_data[entry_index]['users'][user_id]['events'].append(temp)
+                for i, x in enumerate(all_val):
+                    temp = {
+                        'event_name': x['name'],
+                        'event_type': x['type'],
+                        'event_info': x['info'],
+                        'timestamp': x['timestamp'],
+                        'diff': 0
+                    }
+
+                    try:
+                        temp['diff'] = round((all_val[i + 1]['timestamp'] - x['timestamp']).total_seconds(), 2)
+                    except Exception:
+                        temp['diff'] = 0.0
+
+                    sorted_data[entry_index]['source'][source]['users'][user_id]['events'].append(temp)
         entry_index += 1
 
     sorted_data.sort(key=lambda x: x['date'], reverse=True)
