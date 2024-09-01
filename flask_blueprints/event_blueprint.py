@@ -92,4 +92,6 @@ def get():
                     sorted_data[entry_index]['source'][source]['users'][user_id]['events'].append(temp)
         entry_index += 1
 
+    db.session.close()
+
     return sorted_data

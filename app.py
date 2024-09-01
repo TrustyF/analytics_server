@@ -1,5 +1,7 @@
 import json
 import os
+import pprint
+
 from flask import Flask
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -28,9 +30,12 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS "] = {
     'pool_recycle': 280,
     'pool_pre_ping': True
 }
+app.config["SQLALCHEMY_ECHO"] = True
 
 with app.app_context():
     db.init_app(app)
+
+    # pprint.pprint(app.config)
 
     # from sql_models.event_model import *
     # db.create_all()
