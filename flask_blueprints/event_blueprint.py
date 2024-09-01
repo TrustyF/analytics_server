@@ -50,7 +50,6 @@ def add():
 
 @bp.route("/get", methods=['GET'])
 def get():
-    from pprint import pprint
     db_events = db.session.query(Event).all()
     mapped_events = [asdict(x) for x in db_events]
 
