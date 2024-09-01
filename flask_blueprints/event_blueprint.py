@@ -3,7 +3,7 @@ import pprint
 from datetime import datetime
 from dataclasses import asdict
 
-import sqlalchemy.exc
+from sqlalchemy import exc,desc
 from flask import Blueprint, request, Response, jsonify, send_file
 from itertools import groupby
 
@@ -42,7 +42,7 @@ def add():
 
     try:
         db.session.commit()
-    except sqlalchemy.exc.IntegrityError:
+    except exc.IntegrityError:
         return json.dumps({'ok': False}), 404, {'ContentType': 'application/json'}
 
     db.session.close()
@@ -80,7 +80,7 @@ def get():
                         'event_name': x['name'],
                         'event_type': x['type'],
                         'event_info': x['info'],
-                        'timestamp': x['timestamp'],
+                        'timestamp': x['timestamp'].isoformat(),
                         'diff': 0
                     }
 
@@ -92,5 +92,4 @@ def get():
                     sorted_data[entry_index]['source'][source]['users'][user_id]['events'].append(temp)
         entry_index += 1
 
-    sorted_data.sort(key=lambda x: x['date'], reverse=True)
     return sorted_data
