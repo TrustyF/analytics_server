@@ -12,6 +12,12 @@ from sql_models.event_model import Event
 bp = Blueprint('event', __name__)
 
 
+@bp.route("/sleep_check", methods=['GET'])
+def sleep_check():
+    print('not sleeping', datetime.now())
+    return json.dumps({'ok': True}), 200, {'ContentType': 'application/json'}
+
+
 @bp.route("/add", methods=['GET'])
 def add():
     event_uid = int(request.args.get('uid'))
@@ -47,7 +53,6 @@ def get():
     from pprint import pprint
     db_events = db.session.query(Event).all()
     mapped_events = [asdict(x) for x in db_events]
-    print(mapped_events)
 
     entry_index = 0
     sorted_data = []

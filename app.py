@@ -29,7 +29,6 @@ with app.app_context():
     # logging.disable(logging.WARNING)
 
     from sql_models.event_model import *
-    # db.drop_all()
     db.create_all()
 
     from flask_blueprints import event_blueprint
