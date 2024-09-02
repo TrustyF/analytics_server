@@ -3,7 +3,7 @@ import pprint
 from datetime import datetime
 from dataclasses import asdict
 
-from sqlalchemy import exc,desc
+from sqlalchemy import exc, desc
 from flask import Blueprint, request, Response, jsonify, send_file
 from itertools import groupby
 
@@ -57,7 +57,7 @@ def get():
     entry_index = 0
     sorted_data = []
 
-    for date, f_events in groupby(sorted(mapped_events, key=lambda y: y['timestamp']),
+    for date, f_events in groupby(sorted(mapped_events, key=lambda y: y['timestamp'], reverse=True),
                                   key=lambda x: x['timestamp'].date()):
         sorted_data.append({
             'date': date.strftime('%d/%m/%Y'),
