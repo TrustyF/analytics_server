@@ -57,10 +57,15 @@ def get():
     entry_index = 0
     sorted_data = []
 
+    geo = [x for x in mapped_events if x['name'] == 'geolocation'][0] or None
+    mapped_events = [x for x in mapped_events if x['name'] != 'geolocation'] or []
+
     for date, f_events in groupby(sorted(mapped_events, key=lambda y: y['timestamp'], reverse=True),
                                   key=lambda x: x['timestamp'].date()):
+        print(date)
         sorted_data.append({
             'date': date.strftime('%d/%m/%Y'),
+            'geo': json.loads(geo['info']),
             'source': {}
         })
         for source, j_events in groupby(sorted(f_events, key=lambda y: y['source']), key=lambda x: x['source']):
