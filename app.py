@@ -1,12 +1,8 @@
-import json
 import os
-import pprint
-
 from flask import Flask
 from flask_cors import CORS
-from dotenv import load_dotenv
 
-from constants import MAIN_DIR, FLASK_SECRET, DB_NAME, DB_PASSWORD, DB_USERNAME
+from constants import MAIN_DIR, DB_NAME, DB_PASSWORD, DB_USERNAME
 from db_loader import db
 import logging
 
@@ -27,13 +23,14 @@ else:
     logging.disable(logging.WARNING)
 
 app.config["SQLALCHEMY_ENGINE_OPTIONS "] = {
-    'pool_recycle': 280,
+    'pool_recycle': 60,
+    'pool_size': 10,
     'pool_pre_ping': True
 }
 app.config["SQLALCHEMY_ECHO"] = True
+db.init_app(app)
 
 with app.app_context():
-    db.init_app(app)
 
     # pprint.pprint(app.config)
 
