@@ -22,11 +22,11 @@ else:
     app.config["SQLALCHEMY_DATABASE_URI"] = database_uri
     logging.disable(logging.WARNING)
 
-app.config["SQLALCHEMY_ENGINE_OPTIONS "] = {
-    'pool_recycle': 60,
-    'pool_size': 10,
-    'pool_pre_ping': True
-}
+# app.config["SQLALCHEMY_ENGINE_OPTIONS "] = {
+#     'pool_recycle': 60,
+#     'pool_size': 10,
+#     'pool_pre_ping': True
+# }
 db.init_app(app)
 
 with app.app_context():
