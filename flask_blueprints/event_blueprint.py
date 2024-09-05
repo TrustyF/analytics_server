@@ -52,8 +52,9 @@ def add():
         try:
             db.session.add(new_country)
             db.session.commit()
-        except exc.IntegrityError:
+        except exc.IntegrityError as err:
             print('failed to create new country')
+            print(err)
             return json.dumps({'ok': False}), 404, {'ContentType': 'application/json'}
 
     new_event = Event(
