@@ -42,11 +42,12 @@ def add():
     # add if none
     if not country:
         new_country = Country(**event_geo)
-        db.session.add(new_country)
 
         try:
+            db.session.add(new_country)
             db.session.commit()
         except exc.IntegrityError:
+            print('failed to create new country')
             return json.dumps({'ok': False}), 404, {'ContentType': 'application/json'}
 
     new_event = Event(
