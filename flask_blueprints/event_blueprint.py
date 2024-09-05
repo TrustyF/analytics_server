@@ -19,6 +19,7 @@ bp = Blueprint('event', __name__)
 @bp.route("/sleep_check", methods=['GET'])
 def sleep_check():
     print('not sleeping', datetime.now())
+    print('query db',db.session.query(Event).first())
     return json.dumps({'ok': True}), 200, {'ContentType': 'application/json'}
 
 
