@@ -8,3 +8,4 @@ FLASK_SECRET = os.getenv('FLASK_SECRET')
 DB_USERNAME = os.getenv('MYSQL_DATABASE_USERNAME')
 DB_PASSWORD = os.getenv('MYSQL_DATABASE_PASSWORD')
 DB_NAME = 'TrustyFox$firebase_events'
+GEO_API = '2a96f8a25db2469b939c8f836cc9eed9'

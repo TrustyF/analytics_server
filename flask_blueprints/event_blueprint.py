@@ -4,9 +4,11 @@ from datetime import datetime
 from dataclasses import asdict
 from collections import defaultdict
 
+import requests
 from sqlalchemy import exc, desc, func, distinct, cast, Date
 from flask import Blueprint, request, Response, jsonify, send_file
 from itertools import groupby
+from constants import GEO_API
 
 from db_loader import db
 from sql_models.event_model import Event, Country
@@ -92,3 +94,22 @@ def get():
     # pprint.pprint(sorted_data, indent=1)
 
     return sorted_data
+
+
+@bp.route("/geo_locate", methods=['GET'])
+def geo_locate():
+    ip = request.args.get('ip')
+
+    req = requests.get(f'https://api.ipgeolocation.io/ipgeo?apiKey={GEO_API}&ip={ip}')
+    data = req.json()
+
+    out = {'country_name': data['country_name'],
+           'state_prov': data['state_prov'],
+           'city': data['city'],
+           'zipcode': data['zipcode'],
+           'country_code2': data['country_code2'],
+           'country_code3': data['country_code3'],
+           'country_flag': data['country_flag'],
+           'country_emoji': data['country_emoji'], }
+
+    return out
