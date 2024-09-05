@@ -71,12 +71,11 @@ def get():
 
     sorted_data = defaultdict(lambda:
                               defaultdict(lambda:
-                                          defaultdict(lambda:
-                                                      {
-                                                          'events': list(),
-                                                          'geo': dict()
-                                                      }
-                                                      )
+                                          {
+                                              'events': list(),
+                                              'geo': dict(),
+                                              'source': '',
+                                          }
                                           )
                               )
 
@@ -84,8 +83,9 @@ def get():
         dat = str(event.timestamp.date())
         src = event.source
 
-        sorted_data[dat][src][event.uid]['events'].append(event.serialize())
-        sorted_data[dat][src][event.uid]['geo'] = asdict(event.country)
+        sorted_data[dat][event.uid]['events'].append(event.serialize())
+        sorted_data[dat][event.uid]['geo'] = asdict(event.country)
+        sorted_data[dat][event.uid]['source'] = event.source
 
     sorted_data = json.loads(json.dumps(sorted_data))
 
