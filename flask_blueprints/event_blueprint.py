@@ -42,7 +42,11 @@ def add():
     if not country:
         new_country = Country(**event_geo)
         db.session.add(new_country)
-        db.session.commit()
+
+        try:
+            db.session.commit()
+        except exc.IntegrityError:
+            return json.dumps({'ok': False}), 404, {'ContentType': 'application/json'}
 
     new_event = Event(
         uid=event_uid,
@@ -109,7 +113,6 @@ def geo_locate():
            'zipcode': data['zipcode'],
            'country_code2': data['country_code2'],
            'country_code3': data['country_code3'],
-           'country_flag': data['country_flag'],
-           'country_emoji': data['country_emoji'], }
+           'country_flag': data['country_flag'], }
 
     return out

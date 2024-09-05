@@ -50,11 +50,10 @@ class Country(db.Model):
 
     id: int = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
-    city: str = db.Column(db.String(255), unique=True)
+    city: str = db.Column(db.String(255), unique=True, nullable=False)
     country_code2: str = db.Column(db.String(255))
     country_code3: str = db.Column(db.String(255))
-    country_emoji: str = db.Column(db.String(255))
     country_flag: str = db.Column(db.String(255))
-    state_prov: str = db.Column(db.String(255), unique=True)
-    country_name: str = db.Column(db.String(255), unique=True)
+    state_prov: str = db.Column(db.String(255), unique=True, nullable=False)
+    country_name: str = db.Column(db.String(255), unique=True, nullable=False)
     zipcode: str = db.Column(db.String(255))
