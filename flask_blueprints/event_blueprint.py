@@ -2,13 +2,14 @@ import json
 import pprint
 from datetime import datetime
 from dataclasses import asdict
+from collections import defaultdict
 
-from sqlalchemy import exc, desc
+from sqlalchemy import exc, desc, func, distinct, cast, Date
 from flask import Blueprint, request, Response, jsonify, send_file
 from itertools import groupby
 
 from db_loader import db
-from sql_models.event_model import Event
+from sql_models.event_model import Event, Country
 
 bp = Blueprint('event', __name__)
 
@@ -19,20 +20,35 @@ def sleep_check():
     return json.dumps({'ok': True}), 200, {'ContentType': 'application/json'}
 
 
-@bp.route("/add", methods=['GET'])
+@bp.route("/add", methods=['POST'])
 def add():
-    event_uid = int(request.args.get('uid'))
-    event_name = request.args.get('name')
-    event_source = request.args.get('source')
-    event_type = request.args.get('type')
-    event_info = request.args.get('info')
+    event_uid = int(request.json.get('uid'))
+    event_name = request.json.get('name')
+    event_source = request.json.get('source')
+    event_type = request.json.get('type')
+    event_info = request.json.get('info')
+    event_geo = request.json.get('geo')
+
+    # find in db
+    country = db.session.query(Country).filter_by(
+        city=event_geo.get('city'),
+        state_prov=event_geo.get('state_prov'),
+        country_name=event_geo.get('country_name'),
+    ).one_or_none()
+
+    # add if none
+    if not country:
+        new_country = Country(**event_geo)
+        db.session.add(new_country)
+        db.session.commit()
 
     new_event = Event(
         uid=event_uid,
         name=event_name,
         source=event_source,
         type=event_type,
-        info=event_info
+        info=event_info,
+        country_id=country.id
     )
 
     print(new_event)
@@ -51,52 +67,28 @@ def add():
 
 @bp.route("/get", methods=['GET'])
 def get():
-    db_events = db.session.query(Event).all()
-    mapped_events = [asdict(x) for x in db_events]
+    db_events = (db.session.query(Event).all())
 
-    entry_index = 0
-    sorted_data = []
+    sorted_data = defaultdict(lambda:
+                              defaultdict(lambda:
+                                          defaultdict(lambda:
+                                                      {
+                                                          'events': list(),
+                                                          'geo': dict()
+                                                      }
+                                                      )
+                                          )
+                              )
 
-    geo = [x for x in mapped_events if x['name'] == 'geolocation'][0] or None
-    mapped_events = [x for x in mapped_events if x['name'] != 'geolocation'] or []
+    for event in db_events:
+        dat = str(event.timestamp.date())
+        src = event.source
 
-    for date, f_events in groupby(sorted(mapped_events, key=lambda y: y['timestamp'], reverse=True),
-                                  key=lambda x: x['timestamp'].date()):
-        print(date)
-        sorted_data.append({
-            'date': date.strftime('%d/%m/%Y'),
-            'geo': json.loads(geo['info']),
-            'source': {}
-        })
-        for source, j_events in groupby(sorted(f_events, key=lambda y: y['source']), key=lambda x: x['source']):
+        sorted_data[dat][src][event.uid]['events'].append(event.serialize())
+        sorted_data[dat][src][event.uid]['geo'] = asdict(event.country)
 
-            sorted_data[entry_index]['source'][source] = {
-                'users': {}
-            }
+    sorted_data = json.loads(json.dumps(sorted_data))
 
-            for user_id, value in groupby(sorted(j_events, key=lambda y: y['uid']), key=lambda x: x['uid']):
-                all_val = list(sorted(value, key=lambda y: y['timestamp']))
-
-                sorted_data[entry_index]['source'][source]['users'][user_id] = {}
-                sorted_data[entry_index]['source'][source]['users'][user_id]['events'] = []
-
-                for i, x in enumerate(all_val):
-                    temp = {
-                        'event_name': x['name'],
-                        'event_type': x['type'],
-                        'event_info': x['info'],
-                        'timestamp': x['timestamp'].isoformat(),
-                        'diff': 0
-                    }
-
-                    try:
-                        temp['diff'] = round((all_val[i + 1]['timestamp'] - x['timestamp']).total_seconds(), 2)
-                    except Exception:
-                        temp['diff'] = 0.0
-
-                    sorted_data[entry_index]['source'][source]['users'][user_id]['events'].append(temp)
-        entry_index += 1
-
-    db.session.close()
+    # pprint.pprint(sorted_data, indent=1)
 
     return sorted_data

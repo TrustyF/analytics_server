@@ -27,15 +27,14 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS "] = {
     'pool_size': 10,
     'pool_pre_ping': True
 }
-app.config["SQLALCHEMY_ECHO"] = True
 db.init_app(app)
 
 with app.app_context():
 
     # pprint.pprint(app.config)
 
-    # from sql_models.event_model import *
-    # db.create_all()
+    from sql_models.event_model import *
+    db.create_all()
 
     from flask_blueprints import event_blueprint
 
