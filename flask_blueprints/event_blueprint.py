@@ -90,6 +90,7 @@ def get():
                                               'events': list(),
                                               'geo': dict(),
                                               'source': '',
+                                              'total_time': 0,
                                           }
                                           )
                               )
@@ -97,10 +98,12 @@ def get():
     for event in db_events:
         dat = str(event.timestamp.date())
         src = event.source
+        ser_event = event.serialize()
 
-        sorted_data[dat][event.uid]['events'].append(event.serialize())
+        sorted_data[dat][event.uid]['events'].append(ser_event)
         sorted_data[dat][event.uid]['geo'] = asdict(event.country)
         sorted_data[dat][event.uid]['source'] = event.source
+        sorted_data[dat][event.uid]['total_time'] += ser_event['diff']
 
     sorted_data = json.loads(json.dumps(sorted_data))
 
