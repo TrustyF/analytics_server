@@ -104,12 +104,30 @@ def get():
         sorted_data[dat][event.uid]['geo'] = asdict(event.country)
         sorted_data[dat][event.uid]['source'] = event.source
         sorted_data[dat][event.uid]['total_time'] += ser_event['diff']
+        sorted_data[dat][event.uid]['uid'] = event.uid
 
     sorted_data = json.loads(json.dumps(sorted_data))
 
     # pprint.pprint(sorted_data, indent=1)
 
     return sorted_data
+
+
+@bp.route("/delete", methods=['DELETE'])
+def delete():
+    uid = request.args.get('user_id')
+
+    user = db.session.query(Event).filter_by(uid=uid).all()
+
+    for event in user:
+        db.session.delete(event)
+
+    try:
+        db.session.commit()
+    except Exception:
+        return json.dumps({'success': False}), 200, {'ContentType': 'application/json'}
+
+    return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
 @bp.route("/geo_locate", methods=['GET'])
