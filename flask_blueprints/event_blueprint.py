@@ -31,53 +31,21 @@ def sleep_check():
 
 @bp.route("/add", methods=['POST'])
 def add():
-    event_uid = int(request.json.get('uid'))
-    event_name = request.json.get('name')
-    event_source = request.json.get('source')
-    event_type = request.json.get('type')
-    event_info = request.json.get('info')
-    event_geo = request.json.get('geo')
+    event_data = {
+        'event_uid': int(request.json.get('uid')),
+        'event_name': request.json.get('name'),
+        'event_source': request.json.get('source'),
+        'event_type': request.json.get('type'),
+        'event_info': request.json.get('info'),
+        'event_geo': request.json.get('geo'),
+    }
 
-    # find in db
-    country = db.session.query(Country).filter_by(
-        city=event_geo.get('city'),
-        state_prov=event_geo.get('state_prov'),
-        country_name=event_geo.get('country_name'),
-    ).one_or_none()
+    event = Event().create(event_data)
 
-    # add if none
-    if not country:
-        new_country = Country(**event_geo)
-
-        try:
-            db.session.add(new_country)
-            db.session.commit()
-        except exc.IntegrityError as err:
-            print('failed to create new country')
-            print(err)
-            return json.dumps({'ok': False}), 404, {'ContentType': 'application/json'}
-
-    new_event = Event(
-        uid=event_uid,
-        name=event_name,
-        source=event_source,
-        type=event_type,
-        info=event_info,
-        country_id=country.id
-    )
-
-    print(new_event)
-
-    db.session.add(new_event)
-    db.session.commit()
-
-    try:
-        db.session.commit()
-    except exc.IntegrityError:
+    if not event:
         return json.dumps({'ok': False}), 404, {'ContentType': 'application/json'}
-
-    db.session.close()
-    return json.dumps({'ok': True}), 200, {'ContentType': 'application/json'}
+    else:
+        return json.dumps({'ok': True}), 200, {'ContentType': 'application/json'}
 
 
 @bp.route("/get", methods=['GET'])
@@ -113,6 +81,34 @@ def get():
     return sorted_data
 
 
+@bp.route("/ping_user_alive", methods=['PUT'])
+def ping_user_alive():
+
+    event_data = {
+        'event_uid': int(request.json.get('uid')),
+        'event_name': 'page_leave',
+        'event_source': request.json.get('source'),
+        'event_type': 'nav',
+        'event_info': 'form:home',
+        'event_geo': request.json.get('geo'),
+    }
+
+    leave_event = db.session.query(Event).filter_by(uid=event_data['event_uid'], name='page_leave').one_or_none()
+
+    # if leave event doesn't exist create it
+    if not leave_event:
+        new_event = Event().create(event_data)
+        db.session.add(new_event)
+
+    # else update it
+    else:
+        leave_event.timestamp = datetime.now()
+
+    db.session.commit()
+    db.session.close()
+    return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
+
+
 @bp.route("/delete", methods=['DELETE'])
 def delete():
     uid = request.args.get('user_id')
@@ -124,7 +120,7 @@ def delete():
 
     try:
         db.session.commit()
-    except Exception:
+    except exc.IntegrityError:
         return json.dumps({'success': False}), 200, {'ContentType': 'application/json'}
 
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
