@@ -40,12 +40,16 @@ def add():
         'event_geo': request.json.get('geo'),
     }
 
-    event = Event().create(event_data)
-
-    if not event:
+    try:
+        event = Event().create(event_data)
+        db.session.add(event)
+        db.session.commit()
+    except exc.IntegrityError:
+        db.session.close()
         return json.dumps({'ok': False}), 404, {'ContentType': 'application/json'}
-    else:
-        return json.dumps({'ok': True}), 200, {'ContentType': 'application/json'}
+
+    db.session.close()
+    return json.dumps({'ok': True}), 200, {'ContentType': 'application/json'}
 
 
 @bp.route("/get", methods=['GET'])
@@ -83,13 +87,12 @@ def get():
 
 @bp.route("/ping_user_alive", methods=['PUT'])
 def ping_user_alive():
-
     event_data = {
         'event_uid': int(request.json.get('uid')),
         'event_name': 'page_leave',
         'event_source': request.json.get('source'),
         'event_type': 'nav',
-        'event_info': 'form:home',
+        'event_info': 'from:home',
         'event_geo': request.json.get('geo'),
     }
 
