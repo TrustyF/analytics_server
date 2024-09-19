@@ -111,6 +111,7 @@ class Event(db.Model):
             info=event_data['event_info'],
         )
 
+        user.last_touch_time = datetime.datetime.now()
         db.session.add(new_event)
         db.session.commit()
 
