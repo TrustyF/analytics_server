@@ -79,7 +79,7 @@ class Event(db.Model):
         return new_event
 
     def get_next_event(self):
-        next_event = (db.session.query(Event).filter(Event.id == self.id + 1 and Event.user_id == self.user_id)
+        next_event = (db.session.query(Event).filter_by(id=self.id + 1, user_id=self.user.uid)
                       .order_by(Event.id)
                       .one_or_none())
 
