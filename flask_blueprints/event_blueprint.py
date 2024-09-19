@@ -11,7 +11,7 @@ from itertools import groupby
 from constants import GEO_API
 
 from db_loader import db
-from sql_models.event_model import Event, Country
+from sql_models.event_model import Event, Country, User
 
 bp = Blueprint('event', __name__)
 
@@ -54,7 +54,7 @@ def add():
 
 @bp.route("/get", methods=['GET'])
 def get():
-    db_events = (db.session.query(Event).order_by(Event.timestamp).all())
+    db_users = (db.session.query(User).order_by(User.id).all())
 
     sorted_data = defaultdict(lambda:
                               defaultdict(lambda:
@@ -67,16 +67,16 @@ def get():
                                           )
                               )
 
-    for event in db_events:
-        dat = str(event.timestamp.date())
-        src = event.source
-        ser_event = event.serialize()
+    for user in db_users:
+        date = str(user.first_touch_time.date())
 
-        sorted_data[dat][event.uid]['events'].append(ser_event)
-        sorted_data[dat][event.uid]['geo'] = asdict(event.country)
-        sorted_data[dat][event.uid]['source'] = event.source
-        sorted_data[dat][event.uid]['total_time'] += ser_event['diff']
-        sorted_data[dat][event.uid]['uid'] = event.uid
+        sorted_data[date][user.uid]['events'] = sorted([ev.serialize() for ev in user.events],
+                                                       key=lambda x: x['timestamp'])
+        sorted_data[date][user.uid]['geo'] = asdict(user.country)
+        sorted_data[date][user.uid]['source'] = user.source
+        sorted_data[date][user.uid]['total_time'] = round(
+            (user.last_touch_time - user.first_touch_time).total_seconds(), 2)
+        sorted_data[date][user.uid]['uid'] = user.uid
 
     sorted_data = json.loads(json.dumps(sorted_data))
 
@@ -89,26 +89,19 @@ def get():
 def ping_user_alive():
     event_data = {
         'event_uid': int(request.json.get('uid')),
-        'event_name': 'page_leave',
         'event_source': request.json.get('source'),
-        'event_type': 'nav',
-        'event_info': 'from:home',
         'event_geo': request.json.get('geo'),
     }
 
-    leave_event = db.session.query(Event).filter_by(uid=event_data['event_uid'], name='page_leave').one_or_none()
+    user = User().find_or_create(event_data)
 
-    # if leave event doesn't exist create it
-    if not leave_event:
-        new_event = Event().create(event_data)
-        db.session.add(new_event)
+    if not user:
+        return json.dumps({'success': False}), 404, {'ContentType': 'application/json'}
 
-    # else update it
-    else:
-        leave_event.timestamp = datetime.now()
-
+    user.last_touch_time = datetime.now()
     db.session.commit()
     db.session.close()
+
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
@@ -116,14 +109,13 @@ def ping_user_alive():
 def delete():
     uid = request.args.get('user_id')
 
-    user = db.session.query(Event).filter_by(uid=uid).all()
-
-    for event in user:
-        db.session.delete(event)
+    user = db.session.query(User).filter_by(uid=uid).one_or_none()
+    db.session.delete(user)
 
     try:
         db.session.commit()
-    except exc.IntegrityError:
+    except exc.IntegrityError as e:
+        print(e)
         return json.dumps({'success': False}), 200, {'ContentType': 'application/json'}
 
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
