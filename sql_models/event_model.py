@@ -11,7 +11,7 @@ class User(db.Model):
     __tablename__ = "users"
 
     id: int = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    uid: int = db.Column(db.Integer, nullable=False)
+    uid: int = db.Column(db.Integer, nullable=False, unique=True)
     source: str = db.Column(db.String(20), nullable=False)
 
     first_touch_time: datetime.datetime = db.Column(db.DateTime, default=func.now())
@@ -87,7 +87,11 @@ class Event(db.Model):
 
     def calc_timestamp_diff(self, next_event):
         if next_event is None:
-            return round((self.user.last_touch_time - self.timestamp).total_seconds(), 2)
+            temp_diff = round((self.user.last_touch_time - self.timestamp).total_seconds(), 2)
+            if temp_diff < 0:
+                return 0
+            else:
+                return temp_diff
 
         return round((next_event.timestamp - self.timestamp).total_seconds(), 2)
 

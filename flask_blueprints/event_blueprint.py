@@ -109,7 +109,7 @@ def ping_user_alive():
 def delete():
     uid = request.args.get('user_id')
 
-    user = db.session.query(User).filter_by(uid=uid).one_or_none()
+    user = db.session.query(User).with_for_update().filter_by(uid=uid).one_or_none()
     db.session.delete(user)
 
     try:
