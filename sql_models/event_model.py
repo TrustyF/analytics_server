@@ -23,6 +23,9 @@ class Event(db.Model):
     country_id: int = db.Column(db.Integer, db.ForeignKey('countries.id'))
     country = relationship("Country", lazy='joined')
 
+    def __repr__(self):
+        return f'Event.id={self.id}.uid={self.uid}'
+
     def serialize(self):
         return {
             'id': self.id,
@@ -36,7 +39,6 @@ class Event(db.Model):
         }
 
     def create(self, event_data):
-
         # create or find country
         country = Country().find_or_create(event_geo=event_data['event_geo'])
 
@@ -52,15 +54,20 @@ class Event(db.Model):
 
         return new_event
 
-
     def get_prev_event(self):
-        return db.session.query(Event).filter_by(id=self.id + 1, uid=self.uid).one_or_none()
 
-    def calc_timestamp_diff(self, next_event):
-        if next_event is None:
+        prev_event = (db.session.query(Event)
+                      .filter(Event.name != 'page_leave' and Event.id == self.id + 1 and Event.uid == self.uid)
+                      .order_by(Event.id)
+                      .one_or_none())
+
+        return prev_event
+
+    def calc_timestamp_diff(self, prev_event):
+        if prev_event is None:
             return 0
 
-        return round((next_event.timestamp - self.timestamp).total_seconds(), 2)
+        return round((prev_event.timestamp - self.timestamp).total_seconds(), 2)
 
 
 @dataclass

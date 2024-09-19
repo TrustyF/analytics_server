@@ -54,7 +54,7 @@ def add():
 
 @bp.route("/get", methods=['GET'])
 def get():
-    db_events = (db.session.query(Event).all())
+    db_events = (db.session.query(Event).order_by(Event.timestamp).all())
 
     sorted_data = defaultdict(lambda:
                               defaultdict(lambda:
