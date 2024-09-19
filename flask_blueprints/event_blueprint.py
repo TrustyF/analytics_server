@@ -41,12 +41,9 @@ def add():
     }
 
     try:
-        event = Event().create(event_data)
-        db.session.add(event)
-        db.session.commit()
-    except exc.IntegrityError:
-        db.session.close()
-        return json.dumps({'ok': False}), 404, {'ContentType': 'application/json'}
+        Event().create(event_data)
+    except exc.IntegrityError as e:
+        print(e)
 
     db.session.close()
     return json.dumps({'ok': True}), 200, {'ContentType': 'application/json'}
@@ -96,6 +93,7 @@ def ping_user_alive():
     user = User().find_or_create(event_data)
 
     if not user:
+        db.session.close()
         return json.dumps({'success': False}), 404, {'ContentType': 'application/json'}
 
     user.last_touch_time = datetime.now()
