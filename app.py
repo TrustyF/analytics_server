@@ -27,7 +27,6 @@ db.init_app(app)
 with app.app_context():
     # pprint.pprint(app.config)
     from sql_models.event_model import *
-    db.drop_all()
     db.create_all()
 
     from flask_blueprints import event_blueprint
