@@ -1,5 +1,4 @@
 import json
-import pprint
 from datetime import datetime
 from dataclasses import asdict
 from collections import defaultdict
@@ -7,7 +6,6 @@ from collections import defaultdict
 import requests
 from sqlalchemy import exc, desc, func, distinct, cast, Date
 from flask import Blueprint, request, Response, jsonify, send_file
-from itertools import groupby
 from constants import GEO_API
 
 from db_loader import db
@@ -21,7 +19,7 @@ def sleep_check():
     print('not sleeping', datetime.now())
     print('query db')
 
-    db.session.query(Event).with_for_update().first()
+    db.session.query(Event).first()
     db.session.close()
 
 
@@ -36,8 +34,6 @@ def add():
         'event_geo': request.json.get('geo'),
     }
 
-    print('adding ', event_data['event_name'])
-
     Event().create(event_data)
 
     return json.dumps({'ok': True}), 200, {'ContentType': 'application/json'}
@@ -45,8 +41,7 @@ def add():
 
 @bp.route("/get", methods=['GET'])
 def get():
-    db_users = (db.session.query(User).with_for_update().order_by(User.id).all())
-    db.session.close()
+    db_users = (db.session.query(User).order_by(User.id).all())
 
     sorted_data = defaultdict(lambda:
                               defaultdict(lambda:
@@ -102,17 +97,17 @@ def ping_user_alive():
 def delete():
     uid = request.args.get('user_id')
 
-    user = db.session.query(User).with_for_update().filter_by(uid=uid).one_or_none()
-    db.session.delete(user)
+    with db.session() as session:
 
-    try:
-        db.session.commit()
-    except exc.IntegrityError as e:
-        print(e)
-        db.session.close()
-        return json.dumps({'success': False}), 200, {'ContentType': 'application/json'}
+        user = session.query(User).with_for_update().filter_by(uid=uid).one_or_none()
 
-    db.session.close()
+        try:
+            session.delete(user)
+            session.commit()
+        except exc.IntegrityError as e:
+            print(e)
+            return json.dumps({'success': False}), 200, {'ContentType': 'application/json'}
+
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 

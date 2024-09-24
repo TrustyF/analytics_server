@@ -24,10 +24,10 @@ class BasicTests(unittest.TestCase):
             match rand:
                 case 0:
                     return self.client.post('/event/add', json=self.test_event)
-                # case 1:
-                #     return self.client.post('/event/sleep_check', json=self.test_event)
-                # case 2:
-                #     return self.client.post('/event/ping_user_alive', json=self.test_event)
+                case 1:
+                    return self.client.post('/event/sleep_check', json=self.test_event)
+                case 2:
+                    return self.client.post('/event/ping_user_alive', json=self.test_event)
 
         number_of_requests = 100
         with ThreadPoolExecutor(max_workers=10) as executor:
