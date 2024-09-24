@@ -32,6 +32,7 @@ def add():
         'event_type': request.json.get('type'),
         'event_info': request.json.get('info'),
         'event_geo': request.json.get('geo'),
+        'event_time': datetime.fromtimestamp(request.json.get('timestamp') / 1000),
     }
 
     Event().create(event_data)
@@ -78,6 +79,7 @@ def ping_user_alive():
         'event_uid': int(request.json.get('uid')),
         'event_source': request.json.get('source'),
         'event_geo': request.json.get('geo'),
+        'event_time': datetime.fromtimestamp(request.json.get('timestamp') / 1000),
     }
 
     user = User().find_or_create(event_data)
@@ -86,7 +88,7 @@ def ping_user_alive():
         db.session.close()
         return json.dumps({'success': False}), 404, {'ContentType': 'application/json'}
 
-    user.last_touch_time = datetime.now()
+    user.last_touch_time = event_data['event_time']
     db.session.commit()
     db.session.close()
 

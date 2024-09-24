@@ -69,6 +69,7 @@ class Event(db.Model):
             name=event_data['event_name'],
             type=event_data['event_type'],
             info=event_data['event_info'],
+            timestamp=event_data['event_time'],
         )
 
         user.last_touch_time = datetime.datetime.now()
@@ -143,11 +144,15 @@ class User(db.Model):
             # db.session.add(new_user)
 
             #  insert
-            sql = text("INSERT IGNORE INTO users (uid, source,country_id) VALUES (:uid, :src, :country_id)")
+            sql = text("INSERT IGNORE INTO users "
+                       "(uid, source,country_id,first_touch_time,last_touch_time) VALUES "
+                       "(:uid, :src, :country_id, :first_touch_time, :last_touch_time)")
             db.session.execute(sql, {
                 'uid': event_data['event_uid'],
                 'src': event_data['event_source'],
                 'country_id': country.id,
+                'first_touch_time': event_data['event_time'],
+                'last_touch_time': event_data['event_time'],
             })
             db.session.commit()
 
