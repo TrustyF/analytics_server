@@ -4,6 +4,30 @@ from sqlalchemy import exc
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from db_loader import db
+import functools
+import json
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - custom logger - %(levelname)s - %(message)s',
+                    handlers=[logging.FileHandler('logs/app.log'),
+                              logging.StreamHandler()])
+
+logger = logging.getLogger(__name__)
+
+
+def handle_sql_errors(f_func):
+    @functools.wraps(f_func)
+    def wrapper(*args, **kwargs):
+        try:
+            return f_func(*args, **kwargs)
+        except exc.IntegrityError as e:
+            logger.error(f'function failed: {f_func.__name__}')
+            logger.error(e)
+            return json.dumps({'ok': False}), 404, {'ContentType': 'application/json'}
+
+    return wrapper
 
 
 @dataclass
@@ -23,6 +47,7 @@ class User(db.Model):
     events = relationship('Event', back_populates='user', lazy='joined',
                           cascade="all, delete-orphan", passive_deletes=True)
 
+    @handle_sql_errors
     def find_or_create(self, event_data):
         # find in db
         country = Country().find_or_create(event_geo=event_data['event_geo'])
@@ -30,20 +55,24 @@ class User(db.Model):
 
         # add if none
         if not user:
-            try:
-                new_user = User(
-                    uid=event_data['event_uid'],
-                    source=event_data['event_source'],
-                    country_id=country.id
-                )
-                db.session.add(new_user)
-                user = new_user
+            logger.info(f'user not found, creating...')
+            new_user = User(
+                uid=event_data['event_uid'],
+                source=event_data['event_source'],
+                country_id=country.id
+            )
 
-            except exc.IntegrityError as err:
-                print('failed to create new user')
-                print(err)
+            db.session.add(new_user)
+            db.session.commit()
+            user = new_user
 
+            logger.info(f'created user: {user.id}')
+        else:
+            logger.info(f'found user: {user.id}')
+
+        db.session.close()
         return user
+
 
 @dataclass
 class Country(db.Model):
@@ -61,6 +90,7 @@ class Country(db.Model):
 
     users = relationship("User", back_populates="country", lazy='joined')
 
+    @handle_sql_errors
     def find_or_create(self, event_geo):
         # find in db
         country = db.session.query(Country).filter_by(
@@ -70,16 +100,18 @@ class Country(db.Model):
 
         # add if none
         if not country:
-            try:
-                new_country = Country(**event_geo)
-                db.session.add(new_country)
-                country = new_country
+            new_country = Country(**event_geo)
+            db.session.add(new_country)
+            db.session.commit()
+            country = new_country
 
-            except exc.IntegrityError as err:
-                print('failed to create new country')
-                print(err)
+            logger.info(f'created country: {country.id}')
+        else:
+            logger.info(f'found country: {country.id}')
 
+        db.session.close()
         return country
+
 
 @dataclass
 class Event(db.Model):
@@ -99,9 +131,11 @@ class Event(db.Model):
     def __repr__(self):
         return f'Event.id={self.id}'
 
+    # @handle_sql_errors
     def create(self, event_data):
         # create or find country,user
-        user = User().find_or_create(event_data)
+        user = User()
+        user.find_or_create(event_data)
 
         # create new event
         new_event = Event(
@@ -115,10 +149,13 @@ class Event(db.Model):
         db.session.add(new_event)
         db.session.commit()
 
+        logger.info(f'created event: {new_event.id}')
+
     def get_next_event(self):
         next_event = (db.session.query(Event).filter_by(id=self.id + 1, user_id=self.user.id)
                       .order_by(Event.id)
                       .one_or_none())
+        db.session.close()
 
         return next_event
 
@@ -143,6 +180,3 @@ class Event(db.Model):
             'timestamp': self.timestamp.isoformat(),
             'diff': self.calc_timestamp_diff(self.get_next_event())
         }
-
-
-

@@ -21,12 +21,8 @@ def sleep_check():
     print('not sleeping', datetime.now())
     print('query db')
 
-    try:
-        db.session.query(Event).first()
-    except Exception:
-        print('query failed')
-
-    return json.dumps({'ok': True}), 200, {'ContentType': 'application/json'}
+    db.session.query(Event).with_for_update().first()
+    db.session.close()
 
 
 @bp.route("/add", methods=['POST'])
@@ -40,18 +36,17 @@ def add():
         'event_geo': request.json.get('geo'),
     }
 
-    try:
-        Event().create(event_data)
-    except exc.IntegrityError as e:
-        print(e)
+    print('adding ', event_data['event_name'])
 
-    db.session.close()
+    Event().create(event_data)
+
     return json.dumps({'ok': True}), 200, {'ContentType': 'application/json'}
 
 
 @bp.route("/get", methods=['GET'])
 def get():
-    db_users = (db.session.query(User).order_by(User.id).all())
+    db_users = (db.session.query(User).with_for_update().order_by(User.id).all())
+    db.session.close()
 
     sorted_data = defaultdict(lambda:
                               defaultdict(lambda:
@@ -114,8 +109,10 @@ def delete():
         db.session.commit()
     except exc.IntegrityError as e:
         print(e)
+        db.session.close()
         return json.dumps({'success': False}), 200, {'ContentType': 'application/json'}
 
+    db.session.close()
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
