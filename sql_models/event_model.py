@@ -9,10 +9,10 @@ import json
 import logging
 
 # Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - custom logger - %(levelname)s - %(message)s',
-                    handlers=[logging.FileHandler('logs/app.log'),
-                              logging.StreamHandler()])
+# logging.basicConfig(level=logging.INFO,
+#                     format='%(asctime)s - custom logger - %(levelname)s - %(message)s',
+#                     handlers=[logging.FileHandler('app.log'),
+#                               logging.StreamHandler()])
 
 logger = logging.getLogger(__name__)
 
