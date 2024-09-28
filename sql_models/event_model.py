@@ -5,14 +5,7 @@ from sqlalchemy.sql import func, text
 from sqlalchemy.orm import relationship
 from db_loader import db
 import functools
-import json
 import logging
-
-# Configure logging
-# logging.basicConfig(level=logging.INFO,
-#                     format='%(asctime)s - custom logger - %(levelname)s - %(message)s',
-#                     handlers=[logging.FileHandler('app.log'),
-#                               logging.StreamHandler()])
 
 logger = logging.getLogger(__name__)
 
