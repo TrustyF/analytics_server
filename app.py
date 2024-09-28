@@ -9,17 +9,14 @@ import logging
 # check if using locally
 dev_mode = os.path.exists(os.path.join(MAIN_DIR, 'devmode.txt'))
 
-database_uri = f'mysql+pymysql://{DB_USERNAME}:{DB_PASSWORD}@TrustyFox.mysql.pythonanywhere-services.com:3306/{DB_NAME}'
-local_database_uri = f'mysql+pymysql://root:{DB_PASSWORD}@127.0.0.1:3306/{DB_NAME}'
-
 app = Flask(__name__)
 CORS(app)
 
-if dev_mode:
-    print('using local')
-    app.config["SQLALCHEMY_DATABASE_URI"] = local_database_uri
-else:
-    app.config["SQLALCHEMY_DATABASE_URI"] = database_uri
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'database.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # To suppress a warning
+
+if not dev_mode:
     logging.disable(logging.WARNING)
 
 db.init_app(app)

@@ -14,5 +14,3 @@ if not dotenv_loaded:
     raise Exception('Dotenv failed to load secrets')
 else:
     print('secrets loaded')
-
-print('test', os.getenv('TEST'))
