@@ -12,5 +12,3 @@ DB_NAME = 'TrustyFox$firebase_events'
 
 if not dotenv_loaded:
     raise Exception('Dotenv failed to load secrets')
-else:
-    print('secrets loaded')

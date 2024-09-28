@@ -16,13 +16,14 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'database.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # To suppress a warning
 
-if not dev_mode:
+if dev_mode:
+    logging.basicConfig(level=logging.INFO)
+else:
     logging.disable(logging.WARNING)
 
 db.init_app(app)
 
 with app.app_context():
-    # pprint.pprint(app.config)
     from sql_models.event_model import *
     db.create_all()
 

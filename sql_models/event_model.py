@@ -137,7 +137,7 @@ class User(db.Model):
             # db.session.add(new_user)
 
             #  insert
-            sql = text("INSERT IGNORE INTO users "
+            sql = text("INSERT OR IGNORE INTO users "
                        "(uid, source,country_id,first_touch_time,last_touch_time) VALUES "
                        "(:uid, :src, :country_id, :first_touch_time, :last_touch_time)")
             db.session.execute(sql, {
@@ -189,7 +189,7 @@ class Country(db.Model):
             # db.session.add(new_country)
 
             #  insert
-            sql = text("INSERT IGNORE INTO countries "
+            sql = text("INSERT OR IGNORE INTO countries "
                        "(country_name,state_prov,city,zipcode,country_code2,country_code3,country_flag)"
                        " VALUES "
                        "(:country_name, :state_prov, :city, :zipcode, :country_code2, :country_code3, :country_flag)")
