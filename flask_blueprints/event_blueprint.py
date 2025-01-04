@@ -70,6 +70,7 @@ def get():
 
     data_array = [{
         'events': sorted([ev.serialize() for ev in user.events], key=lambda y: y['timestamp']),
+        'date' : str(user.first_touch_time.date()),
         'geo': asdict(user.country),
         'source': user.source,
         'total_time': round((user.last_touch_time - user.first_touch_time).total_seconds(), 2),
