@@ -44,33 +44,41 @@ def add():
 def get():
     db_users = (db.session.query(User).order_by(User.id).all())
 
-    sorted_data = defaultdict(lambda:
-                              defaultdict(lambda:
-                                          {
-                                              'events': list(),
-                                              'geo': dict(),
-                                              'source': '',
-                                              'total_time': 0,
-                                          }
-                                          )
-                              )
+    # sorted_data = defaultdict(lambda:
+    #                           defaultdict(lambda:
+    #                                       {
+    #                                           'events': list(),
+    #                                           'geo': dict(),
+    #                                           'source': '',
+    #                                           'total_time': 0,
+    #                                       }
+    #                                       )
+    #                           )
+    #
+    # for user in db_users:
+    #     date = str(user.first_touch_time.date())
+    #
+    #     sorted_data[date][user.uid]['events'] = sorted([ev.serialize() for ev in user.events],
+    #                                                    key=lambda x: x['timestamp'])
+    #     sorted_data[date][user.uid]['geo'] = asdict(user.country)
+    #     sorted_data[date][user.uid]['source'] = user.source
+    #     sorted_data[date][user.uid]['total_time'] = round(
+    #         (user.last_touch_time - user.first_touch_time).total_seconds(), 2)
+    #     sorted_data[date][user.uid]['uid'] = user.uid
+    #
+    # sorted_data = json.loads(json.dumps(sorted_data))
 
-    for user in db_users:
-        date = str(user.first_touch_time.date())
-
-        sorted_data[date][user.uid]['events'] = sorted([ev.serialize() for ev in user.events],
-                                                       key=lambda x: x['timestamp'])
-        sorted_data[date][user.uid]['geo'] = asdict(user.country)
-        sorted_data[date][user.uid]['source'] = user.source
-        sorted_data[date][user.uid]['total_time'] = round(
-            (user.last_touch_time - user.first_touch_time).total_seconds(), 2)
-        sorted_data[date][user.uid]['uid'] = user.uid
-
-    sorted_data = json.loads(json.dumps(sorted_data))
+    data_array = [{
+        'events': sorted([ev.serialize() for ev in user.events], key=lambda y: y['timestamp']),
+        'geo': asdict(user.country),
+        'source': user.source,
+        'total_time': round((user.last_touch_time - user.first_touch_time).total_seconds(), 2),
+        'uid':user.uid
+    } for user in db_users]
 
     # pprint.pprint(sorted_data, indent=1)
 
-    return sorted_data
+    return data_array
 
 
 @bp.route("/ping_user_alive", methods=['PUT'])
