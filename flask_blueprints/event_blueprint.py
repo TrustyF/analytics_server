@@ -73,6 +73,7 @@ def get():
         'date' : str(user.first_touch_time.date()),
         'geo': asdict(user.country),
         'source': user.source,
+        'first_touch': user.first_touch_time,
         'total_time': round((user.last_touch_time - user.first_touch_time).total_seconds(), 2),
         'uid':user.uid
     } for user in db_users]
