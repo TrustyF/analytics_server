@@ -1,7 +1,7 @@
 import os
 from flask import Flask
 from flask_cors import CORS
-
+from flask_caching import Cache
 from constants import MAIN_DIR, DB_NAME, DB_PASSWORD, DB_USERNAME
 from db_loader import db
 import logging
@@ -15,6 +15,20 @@ CORS(app)
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'database.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # To suppress a warning
+
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_recycle': 280,
+    'pool_pre_ping': True,
+    'echo':False
+}
+
+cache_config = {
+    "DEBUG": True,
+    "CACHE_TYPE": "SimpleCache",
+    "CACHE_DEFAULT_TIMEOUT": 300
+}
+app.config.from_mapping(cache_config)
+cache = Cache(app)
 
 if dev_mode:
     logging.basicConfig(level=logging.INFO)

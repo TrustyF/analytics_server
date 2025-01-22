@@ -88,3 +88,4 @@ wcwidth==0.2.13
 websockets==12.0
 Werkzeug==3.0.1
 youtube-search-python==1.6.6
+Flask-Caching

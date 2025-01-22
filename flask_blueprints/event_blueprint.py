@@ -6,6 +6,8 @@ from collections import defaultdict
 import requests
 from sqlalchemy import exc, desc, func, distinct, cast, Date
 from flask import Blueprint, request, Response, jsonify, send_file
+
+from app import cache
 from constants import GEO_API
 
 from db_loader import db
@@ -21,6 +23,8 @@ def sleep_check():
 
     db.session.query(Event).first()
     db.session.close()
+
+    return json.dumps({'ok': True}), 200, {'ContentType': 'application/json'}
 
 
 @bp.route("/add", methods=['POST'])
@@ -41,32 +45,9 @@ def add():
 
 
 @bp.route("/get", methods=['GET'])
+@cache.cached()
 def get():
     db_users = (db.session.query(User).order_by(User.id).all())
-
-    # sorted_data = defaultdict(lambda:
-    #                           defaultdict(lambda:
-    #                                       {
-    #                                           'events': list(),
-    #                                           'geo': dict(),
-    #                                           'source': '',
-    #                                           'total_time': 0,
-    #                                       }
-    #                                       )
-    #                           )
-    #
-    # for user in db_users:
-    #     date = str(user.first_touch_time.date())
-    #
-    #     sorted_data[date][user.uid]['events'] = sorted([ev.serialize() for ev in user.events],
-    #                                                    key=lambda x: x['timestamp'])
-    #     sorted_data[date][user.uid]['geo'] = asdict(user.country)
-    #     sorted_data[date][user.uid]['source'] = user.source
-    #     sorted_data[date][user.uid]['total_time'] = round(
-    #         (user.last_touch_time - user.first_touch_time).total_seconds(), 2)
-    #     sorted_data[date][user.uid]['uid'] = user.uid
-    #
-    # sorted_data = json.loads(json.dumps(sorted_data))
 
     data_array = [{
         'events': sorted([ev.serialize() for ev in user.events], key=lambda y: y['timestamp']),
