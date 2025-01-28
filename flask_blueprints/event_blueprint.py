@@ -47,7 +47,7 @@ def add():
 
 
 @bp.route("/get", methods=['GET'])
-@cache.cached(timeout=None)
+@cache.cached(timeout=86400)
 def get():
     db_users = (db.session.query(User).order_by(User.id).all())
 
