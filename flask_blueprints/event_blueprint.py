@@ -4,6 +4,7 @@ from dataclasses import asdict
 from collections import defaultdict
 
 import requests
+from async_timeout import timeout
 from sqlalchemy import exc, desc, func, distinct, cast, Date
 from flask import Blueprint, request, Response, jsonify, send_file
 
@@ -40,12 +41,13 @@ def add():
     }
 
     Event().create(event_data)
+    cache.delete(get)
 
     return json.dumps({'ok': True}), 200, {'ContentType': 'application/json'}
 
 
 @bp.route("/get", methods=['GET'])
-@cache.cached()
+@cache.cached(timeout=None)
 def get():
     db_users = (db.session.query(User).order_by(User.id).all())
 
