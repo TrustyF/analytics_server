@@ -42,12 +42,13 @@ def add():
 
     Event().create(event_data)
     cache.delete(get)
+    cache.delete_memoized(get_sorted)
 
     return json.dumps({'ok': True}), 200, {'ContentType': 'application/json'}
 
 
 @bp.route("/get", methods=['GET'])
-@cache.cached(timeout=86400)
+@cache.cached(timeout=3600)
 def get():
     db_users = (db.session.query(User).order_by(User.id).all())
 
@@ -66,12 +67,15 @@ def get():
     return data_array
 
 @bp.route("/get_sorted", methods=['GET'])
-@cache.cached(timeout=86400)
+@cache.memoize(timeout=3600)
 def get_sorted():
 
     limit = request.args.get('limit')
 
-    db_users = (db.session.query(User).order_by(User.id).limit(limit).all())
+    db_users = (db.session.query(User)
+                .order_by(User.first_touch_time.desc(),User.id)
+                .limit(limit)
+                .all())
 
     data_array = [{
         'events': sorted([ev.serialize() for ev in user.events], key=lambda y: y['timestamp']),
