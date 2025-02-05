@@ -54,37 +54,39 @@ def get():
 
     data_array = [{
         'events': sorted([ev.serialize() for ev in user.events], key=lambda y: y['timestamp']),
-        'date' : str(user.first_touch_time.date()),
+        'date': str(user.first_touch_time.date()),
         'geo': asdict(user.country),
         'source': user.source,
         'first_touch': user.first_touch_time,
         'total_time': round((user.last_touch_time - user.first_touch_time).total_seconds(), 2),
-        'uid':user.uid
+        'uid': user.uid
     } for user in db_users]
 
     # pprint.pprint(sorted_data, indent=1)
 
     return data_array
 
+
 @bp.route("/get_sorted", methods=['GET'])
 @cache.memoize(timeout=3600)
 def get_sorted():
-
     limit = request.args.get('limit')
+    get_events = request.args.get('get_events', True)
 
     db_users = (db.session.query(User)
-                .order_by(User.first_touch_time.desc(),User.id)
+                .order_by(User.first_touch_time.desc(), User.id)
                 .limit(limit)
                 .all())
 
     data_array = [{
-        'events': sorted([ev.serialize() for ev in user.events], key=lambda y: y['timestamp']),
-        'date' : str(user.first_touch_time.date()),
+        **({'events': sorted([ev.serialize() for ev in user.events],
+                             key=lambda y: y['timestamp'])} if get_events else {}), 'date': str(
+            user.first_touch_time.date()),
         'geo': asdict(user.country),
         'source': user.source,
         'first_touch': user.first_touch_time,
         'total_time': round((user.last_touch_time - user.first_touch_time).total_seconds(), 2),
-        'uid':user.uid
+        'uid': user.uid
     } for user in db_users]
 
     return data_array
