@@ -72,11 +72,14 @@ def get():
 def get_sorted():
     limit = request.args.get('limit')
     get_events = request.args.get('get_events', True)
+    get_me = request.args.get('get_me', False)
 
-    db_users = (db.session.query(User)
-                .order_by(User.first_touch_time.desc(), User.id)
-                .limit(limit)
-                .all())
+    query = db.session.query(User)
+
+    if not get_me:
+        query = query.filter(Country.zipcode != 'V6Z' and Country.state_prov != 'British Columbia')
+
+    db_users = query.order_by(User.first_touch_time.desc(), User.id).limit(limit).all()
 
     data_array = [{
         **({'events': sorted([ev.serialize() for ev in user.events],
