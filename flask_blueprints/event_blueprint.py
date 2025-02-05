@@ -65,6 +65,26 @@ def get():
 
     return data_array
 
+@bp.route("/get_sorted", methods=['GET'])
+@cache.cached(timeout=86400)
+def get_sorted():
+
+    limit = request.args.get('limit')
+
+    db_users = (db.session.query(User).order_by(User.id).limit(limit).all())
+
+    data_array = [{
+        'events': sorted([ev.serialize() for ev in user.events], key=lambda y: y['timestamp']),
+        'date' : str(user.first_touch_time.date()),
+        'geo': asdict(user.country),
+        'source': user.source,
+        'first_touch': user.first_touch_time,
+        'total_time': round((user.last_touch_time - user.first_touch_time).total_seconds(), 2),
+        'uid':user.uid
+    } for user in db_users]
+
+    return data_array
+
 
 @bp.route("/ping_user_alive", methods=['PUT'])
 def ping_user_alive():
