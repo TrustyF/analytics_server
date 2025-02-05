@@ -5,7 +5,7 @@ from collections import defaultdict
 
 import requests
 from async_timeout import timeout
-from sqlalchemy import exc, desc, func, distinct, cast, Date
+from sqlalchemy import exc, desc, func, distinct, cast, Date, and_
 from flask import Blueprint, request, Response, jsonify, send_file
 
 from app import cache
@@ -15,6 +15,8 @@ from db_loader import db
 from sql_models.event_model import Event, Country, User
 
 bp = Blueprint('event', __name__)
+
+cache.clear()
 
 
 @bp.route("/sleep_check", methods=['GET'])
@@ -41,8 +43,7 @@ def add():
     }
 
     Event().create(event_data)
-    cache.delete(get)
-    cache.delete_memoized(get_sorted)
+    cache.clear()
 
     return json.dumps({'ok': True}), 200, {'ContentType': 'application/json'}
 
@@ -77,7 +78,9 @@ def get_sorted():
     query = db.session.query(User)
 
     if not get_me:
-        query = query.filter(Country.zipcode != 'V6Z' and Country.state_prov != 'British Columbia')
+        query = (query.join(Country)
+                 .filter(and_(Country.zipcode != 'V6Z',
+                               Country.state_prov != 'British Columbia')))
 
     db_users = query.order_by(User.first_touch_time.desc(), User.id).limit(limit).all()
 
