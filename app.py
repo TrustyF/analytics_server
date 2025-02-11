@@ -25,7 +25,7 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 cache_config = {
     "DEBUG": True,
     "CACHE_TYPE": "SimpleCache",
-    "CACHE_DEFAULT_TIMEOUT": 300
+    "CACHE_DEFAULT_TIMEOUT": 1000
 }
 app.config.from_mapping(cache_config)
 cache = Cache(app)

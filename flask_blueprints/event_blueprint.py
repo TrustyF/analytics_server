@@ -49,7 +49,7 @@ def add():
 
 
 @bp.route("/get", methods=['GET'])
-@cache.cached(timeout=3600)
+@cache.cached()
 def get():
     db_users = (db.session.query(User).order_by(User.id).all())
 
@@ -69,7 +69,7 @@ def get():
 
 
 @bp.route("/get_sorted", methods=['GET'])
-@cache.memoize(timeout=3600)
+@cache.cached()
 def get_sorted():
     limit = request.args.get('limit')
     get_events = request.args.get('get_events', True)
