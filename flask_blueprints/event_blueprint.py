@@ -43,13 +43,11 @@ def add():
     }
 
     Event().create(event_data)
-    cache.clear()
 
     return json.dumps({'ok': True}), 200, {'ContentType': 'application/json'}
 
 
 @bp.route("/get", methods=['GET'])
-@cache.cached()
 def get():
     db_users = (db.session.query(User).order_by(User.id).all())
 
@@ -69,7 +67,6 @@ def get():
 
 
 @bp.route("/get_sorted", methods=['GET'])
-@cache.cached()
 def get_sorted():
     limit = request.args.get('limit')
     get_events = request.args.get('get_events', True)
@@ -80,14 +77,14 @@ def get_sorted():
     if not get_me:
         query = (query.join(Country)
                  .filter(and_(Country.zipcode != 'V6Z',
-                               Country.state_prov != 'British Columbia')))
+                              Country.state_prov != 'British Columbia')))
 
     db_users = query.order_by(User.first_touch_time.desc(), User.id).limit(limit).all()
 
     data_array = [{
         **({'events': sorted([ev.serialize() for ev in user.events],
-                             key=lambda y: y['timestamp'])} if get_events else {}), 'date': str(
-            user.first_touch_time.date()),
+                             key=lambda y: y['timestamp'])} if get_events else {}),
+        'date': str(user.first_touch_time.date()),
         'geo': asdict(user.country),
         'source': user.source,
         'first_touch': user.first_touch_time,
