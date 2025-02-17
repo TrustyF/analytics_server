@@ -153,6 +153,8 @@ def geo_locate():
 
 @bp.route("/get_stats", methods=['GET'])
 def get_stats():
+    delta = request.args.get('time_delta')
+
     query = db.session.query(
         func.date(User.first_touch_time).label('date'),
         User.source,
@@ -161,14 +163,15 @@ def get_stats():
         func.date(User.first_touch_time),
         User.source
     )
-    source_hits = query.all()
+
+    source_hits = query.limit(delta).all()
 
     hits_dict = {}
     for hit in source_hits:
         if hit.source not in hits_dict:
-            hits_dict[hit.source] = {}
-        hits_dict[hit.source][hit.date] = hit.hits
+            hits_dict[hit.source] = []
+        hits_dict[hit.source].append({'dateTime': hit.date, 'value': hit.hits})
 
-    print(hits_dict)
+    # pprint(hits_dict)
 
     return hits_dict, 200
