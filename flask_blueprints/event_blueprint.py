@@ -1,6 +1,6 @@
 import json
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from pprint import pprint
 
 import requests
@@ -153,23 +153,28 @@ def geo_locate():
 
 @bp.route("/get_stats", methods=['GET'])
 def get_stats():
-    delta = request.args.get('time_delta')
 
-    query = db.session.query(
+    delta = int(request.args.get('time_delta'))
+    cutoff_date = datetime.now() - timedelta(days=delta)
+
+    query = (db.session.query(
         func.date(User.first_touch_time).label('date'),
         User.source,
-        func.count(User.id).label('hits')
-    ).group_by(
-        func.date(User.first_touch_time),
-        User.source
-    )
+        func.count(User.id).label('hits'))
+             .filter(User.first_touch_time >= cutoff_date)
+             .group_by(func.date(User.first_touch_time), User.source))
 
-    source_hits = query.limit(delta).all()
+    source_hits = query.all()
 
     hits_dict = {}
     for hit in source_hits:
+
         if hit.source not in hits_dict:
             hits_dict[hit.source] = []
+
+        if len(hits_dict[hit.source]) > delta:
+            continue
+
         hits_dict[hit.source].append({'dateTime': hit.date, 'value': hit.hits})
 
     # pprint(hits_dict)
