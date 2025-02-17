@@ -1,16 +1,14 @@
 import json
-from datetime import datetime
 from dataclasses import asdict
-from collections import defaultdict
+from datetime import datetime
+from pprint import pprint
 
 import requests
-from async_timeout import timeout
-from sqlalchemy import exc, desc, func, distinct, cast, Date, and_
-from flask import Blueprint, request, Response, jsonify, send_file
+from flask import Blueprint, request
+from sqlalchemy import exc, and_, func
 
 from app import cache
 from constants import GEO_API
-
 from db_loader import db
 from sql_models.event_model import Event, Country, User
 
@@ -151,3 +149,26 @@ def geo_locate():
            'country_flag': data['country_flag'], }
 
     return out
+
+
+@bp.route("/get_stats", methods=['GET'])
+def get_stats():
+    query = db.session.query(
+        func.date(User.first_touch_time).label('date'),
+        User.source,
+        func.count(User.id).label('hits')
+    ).group_by(
+        func.date(User.first_touch_time),
+        User.source
+    )
+    source_hits = query.all()
+
+    hits_dict = {}
+    for hit in source_hits:
+        if hit.source not in hits_dict:
+            hits_dict[hit.source] = {}
+        hits_dict[hit.source][hit.date] = hit.hits
+
+    print(hits_dict)
+
+    return hits_dict, 200
