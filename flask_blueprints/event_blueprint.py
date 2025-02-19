@@ -1,7 +1,8 @@
 import json
 from dataclasses import asdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta,timezone
 from pprint import pprint
+from zoneinfo import ZoneInfo
 
 import requests
 from flask import Blueprint, request
@@ -14,7 +15,14 @@ from sql_models.event_model import Event, Country, User
 
 bp = Blueprint('event', __name__)
 
-cache.clear()
+LOCAL_TZ = timezone(timedelta(hours=-8))  # Example: UTC-5 -> timedelta(hours=-5)
+SERVER_TZ = timezone(timedelta(hours=0))  # Example: UTC-5 -> timedelta(hours=-5)
+
+def to_local_time(dt_utc):
+    if dt_utc:
+        # dt_with_tz = dt_utc.replace(tzinfo=SERVER_TZ)  # Attach original timezone
+        return dt_utc.astimezone(LOCAL_TZ).date().isoformat()  # Convert to local date
+    return None
 
 
 @bp.route("/sleep_check", methods=['GET'])
@@ -153,12 +161,11 @@ def geo_locate():
 
 @bp.route("/get_stats", methods=['GET'])
 def get_stats():
-
     delta = int(request.args.get('time_delta'))
     cutoff_date = datetime.now() - timedelta(days=delta)
 
     query = (db.session.query(
-        func.date(User.first_touch_time).label('date'),
+        User.first_touch_time.label('date'),
         User.source,
         func.count(User.id).label('hits'))
              .filter(User.first_touch_time >= cutoff_date)
@@ -175,7 +182,7 @@ def get_stats():
         if len(hits_dict[hit.source]) > delta:
             continue
 
-        hits_dict[hit.source].append({'dateTime': hit.date, 'value': hit.hits})
+        hits_dict[hit.source].append({'dateTime': to_local_time(hit.date), 'value': hit.hits})
 
     # pprint(hits_dict)
 
