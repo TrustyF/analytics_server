@@ -97,7 +97,7 @@ class Event(db.Model):
             'source': self.user.source,
             'info': self.info,
             'timestamp': self.timestamp.isoformat(),
-            'diff': self.calc_timestamp_diff(self.get_next_event())
+            'diff': 0
         }
 
 
@@ -115,7 +115,7 @@ class User(db.Model):
     country_id: int = db.Column(db.Integer, db.ForeignKey('countries.id'))
     country = relationship("Country", back_populates="users", lazy='joined')
 
-    events = relationship('Event', back_populates='user', lazy='joined',
+    events = relationship('Event', back_populates='user', lazy='joined', order_by="Event.timestamp",
                           cascade="all, delete-orphan", passive_deletes=True)
 
     @retry_on_deadlock()

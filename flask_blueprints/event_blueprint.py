@@ -6,6 +6,7 @@ from pprint import pprint
 import requests
 from flask import Blueprint, request
 from sqlalchemy import exc, and_, func
+from sqlalchemy.orm import joinedload
 
 from constants import GEO_API
 from db_loader import db
@@ -44,10 +45,12 @@ def add():
 
 @bp.route("/get", methods=['GET'])
 def get():
-    db_users = (db.session.query(User).order_by(User.id).all())
+    db_users = (db.session.query(User)
+                .options(joinedload(User.events), joinedload(User.country))
+                .order_by(User.id).all())
 
     data_array = [{
-        'events': sorted([ev.serialize() for ev in user.events], key=lambda y: y['timestamp']),
+        'events': [ev.serialize() for ev in user.events],
         'date': str(user.first_touch_time.date()),
         'geo': asdict(user.country),
         'source': user.source,
@@ -55,9 +58,6 @@ def get():
         'total_time': round((user.last_touch_time - user.first_touch_time).total_seconds(), 2),
         'uid': user.uid
     } for user in db_users]
-
-    # pprint.pprint(sorted_data, indent=1)
-
     return data_array
 
 
@@ -171,6 +171,8 @@ def get_stats():
 
         hits_dict[hit.source].append({'dateTime': hit.date, 'value': hit.hits})
 
-    # pprint(hits_dict)
+    # Generate last 20 days from today
+    today = datetime.today().date()
+    date_range = [(today - timedelta(days=i)).isoformat() for i in range(delta)]
 
     return hits_dict, 200
