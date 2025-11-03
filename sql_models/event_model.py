@@ -168,15 +168,15 @@ class Country(db.Model):
     country_code2: str = db.Column(db.String(255))
     country_code3: str = db.Column(db.String(255))
     country_flag: str = db.Column(db.String(255))
-    state_prov: str = db.Column(db.String(255), unique=True, nullable=False)
-    country_name: str = db.Column(db.String(255), unique=True, nullable=False)
+    state_prov: str = db.Column(db.String(255), nullable=False)
+    country_name: str = db.Column(db.String(255), nullable=False)
     zipcode: str = db.Column(db.String(255))
 
     users = relationship("User", back_populates="country", lazy='joined')
 
     @retry_on_deadlock()
     def find_or_create(self, event_geo):
-        logger.error(f'attempting to create country: {event_geo}')
+        logger.info(f'attempting to create country: {event_geo}')
         # find in db
         country = db.session.query(Country).filter_by(
             city=event_geo.get('city'),
