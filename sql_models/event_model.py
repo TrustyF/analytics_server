@@ -176,7 +176,7 @@ class Country(db.Model):
 
     @retry_on_deadlock()
     def find_or_create(self, event_geo):
-        logger.info(f'attempting to create country: {event_geo}')
+        logger.error(f'attempting to create country: {event_geo}')
         # find in db
         country = db.session.query(Country).filter_by(
             city=event_geo.get('city'),
