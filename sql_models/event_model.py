@@ -129,13 +129,6 @@ class User(db.Model):
 
             country = Country().find_or_create(event_geo=event_data['event_geo'])
 
-            # new_user = User(
-            #     uid=event_data['event_uid'],
-            #     source=event_data['event_source'],
-            #     country_id=country.id
-            # )
-            # db.session.add(new_user)
-
             #  insert
             sql = text("INSERT OR IGNORE INTO users "
                        "(uid, source,country_id,first_touch_time,last_touch_time) VALUES "
@@ -164,7 +157,7 @@ class Country(db.Model):
 
     id: int = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
-    city: str = db.Column(db.String(255), unique=True, nullable=False)
+    city: str = db.Column(db.String(255), nullable=False)
     country_code2: str = db.Column(db.String(255))
     country_code3: str = db.Column(db.String(255))
     country_flag: str = db.Column(db.String(255))
@@ -185,18 +178,20 @@ class Country(db.Model):
 
         # add if none
         if not country:
+            logger.info('country not found, creating')
 
-            # new_country = Country(**event_geo)
-            # db.session.add(new_country)
+            new_country = Country(**event_geo)
+            db.session.add(new_country)
 
             #  insert
-            sql = text("INSERT OR IGNORE INTO countries "
-                       "(country_name,state_prov,city,zipcode,country_code2,country_code3,country_flag)"
-                       " VALUES "
-                       "(:country_name, :state_prov, :city, :zipcode, :country_code2, :country_code3, :country_flag)")
-
-            db.session.execute(sql, event_geo)
-            db.session.commit()
+            # sql = text("INSERT OR IGNORE INTO countries "
+            #            "(country_name,state_prov,city,zipcode,country_code2,country_code3,country_flag)"
+            #            " VALUES "
+            #            "(:country_name, :state_prov, :city, :zipcode, :country_code2, :country_code3, :country_flag)")
+            #
+            # db.session.execute(sql, event_geo)
+            # db.session.commit()
+            # db.session.close()
 
             country = db.session.query(Country).filter_by(
                 city=event_geo.get('city'),

@@ -26,8 +26,8 @@ cache = Cache(app)
 
 if dev_mode:
     logging.basicConfig(level=logging.INFO)
-else:
-    logging.disable(logging.WARNING)
+# else:
+#     logging.disable(logging.WARNING)
 
 db.init_app(app)
 
