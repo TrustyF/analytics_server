@@ -16,12 +16,6 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'database.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # To suppress a warning
 
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_recycle': 280,
-    'pool_pre_ping': True,
-    'echo':False
-}
-
 cache_config = {
     "DEBUG": True,
     "CACHE_TYPE": "SimpleCache",
