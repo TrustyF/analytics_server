@@ -1,133 +1,80 @@
+import base64
 import json
-from dataclasses import asdict
-from datetime import datetime, timedelta, timezone
-from pprint import pprint
+import os
+import time
+import zlib
 
 import requests
-from flask import Blueprint, request
-from sqlalchemy import exc, and_, func
-from sqlalchemy.orm import joinedload
+from flask import Blueprint, request, jsonify, send_from_directory, abort
 
 from constants import GEO_API
 from db_loader import db
-from sql_models.event_model import Event, Country, User
+from sql_models.event_model import Session, Event, Country
 
 bp = Blueprint('event', __name__)
 
 
-@bp.route("/sleep_check", methods=['GET'])
-def sleep_check():
-    print('not sleeping', datetime.now())
-    print('query db')
-
-    db.session.query(Event).first()
-    db.session.close()
-
-    return json.dumps({'ok': True}), 200, {'ContentType': 'application/json'}
+def compress_event(event):
+    json_bytes = json.dumps(event).encode("utf-8")
+    compressed = zlib.compress(json_bytes)
+    return base64.b64encode(compressed).decode("utf-8")
 
 
-@bp.route("/add", methods=['POST'])
+def decompress_event(s):
+    compressed = base64.b64decode(s)
+    return json.loads(zlib.decompress(compressed))
+
+
+@bp.route("/add", methods=["POST"])
 def add():
-    event_data = {
-        'event_uid': int(request.json.get('uid')),
-        'event_name': request.json.get('name'),
-        'event_source': request.json.get('source'),
-        'event_type': request.json.get('type'),
-        'event_info': request.json.get('info'),
-        'event_geo': request.json.get('geo'),
-        'event_time': datetime.fromtimestamp(request.json.get('timestamp') / 1000),
-    }
+    session_id = request.json.get("sid")
+    session_source = request.json.get("source")
+    session_geo = request.json.get("geo")
+    session_events = request.json.get("events")
 
-    Event().create(event_data)
+    # check if session exists
+    session = Session.query.filter_by(sid=session_id, source=session_source).first()
 
-    return json.dumps({'ok': True}), 200, {'ContentType': 'application/json'}
+    if not session:
+        country = Country().find_or_create(event_geo=session_geo)
+        session = Session(
+            sid=session_id,
+            source=session_source,
+            country_id=country.id
+        )
+        db.session.add(session)
+        db.session.commit()
 
+    # store the batch
+    event_entry = Event(
+        sid=session_id,
+        timestamp=int(time.time()),
+        data=compress_event(session_events)
+    )
 
-@bp.route("/get", methods=['GET'])
-def get():
-    db_users = (db.session.query(User)
-                .options(joinedload(User.events), joinedload(User.country))
-                .order_by(User.id).all())
-
-    data_array = [{
-        'events': [ev.serialize() for ev in user.events],
-        'date': str(user.first_touch_time.date()),
-        'geo': asdict(user.country),
-        'source': user.source,
-        'first_touch': user.first_touch_time,
-        'total_time': round((user.last_touch_time - user.first_touch_time).total_seconds(), 2),
-        'uid': user.uid
-    } for user in db_users]
-    return data_array
-
-
-@bp.route("/get_sorted", methods=['GET'])
-def get_sorted():
-    limit = request.args.get('limit')
-    get_events = request.args.get('get_events', True)
-    get_me = request.args.get('get_me', False)
-
-    query = db.session.query(User)
-
-    if not get_me:
-        query = (query.join(Country)
-                 .filter(and_(Country.zipcode != 'V6Z',
-                              Country.state_prov != 'British Columbia')))
-
-    db_users = query.order_by(User.first_touch_time.desc(), User.id).limit(limit).all()
-
-    data_array = [{
-        **({'events': sorted([ev.serialize() for ev in user.events],
-                             key=lambda y: y['timestamp'])} if get_events else {}),
-        'date': str(user.first_touch_time.date()),
-        'geo': asdict(user.country),
-        'source': user.source,
-        'first_touch': user.first_touch_time,
-        'total_time': round((user.last_touch_time - user.first_touch_time).total_seconds(), 2),
-        'uid': user.uid
-    } for user in db_users]
-
-    return data_array
-
-
-@bp.route("/ping_user_alive", methods=['PUT'])
-def ping_user_alive():
-    event_data = {
-        'event_uid': int(request.json.get('uid')),
-        'event_source': request.json.get('source'),
-        'event_geo': request.json.get('geo'),
-        'event_time': datetime.fromtimestamp(request.json.get('timestamp') / 1000),
-    }
-
-    user = User().find_or_create(event_data)
-
-    if not user:
-        db.session.close()
-        return json.dumps({'success': False}), 404, {'ContentType': 'application/json'}
-
-    user.last_touch_time = event_data['event_time']
+    db.session.add(event_entry)
     db.session.commit()
-    db.session.close()
 
-    return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
+    return jsonify({"status": "ok", "saved_events": len(session_events)})
 
 
-@bp.route("/delete", methods=['DELETE'])
-def delete():
-    uid = request.args.get('user_id')
+@bp.route('/get_sessions')
+def get_sessions():
+    sessions = Session.query.all()
+    all_sessions = [x.serialize() for x in sessions]
+    return all_sessions
 
-    with db.session() as session:
 
-        user = session.query(User).with_for_update().filter_by(uid=uid).one_or_none()
+@bp.route("/session/<sid>")
+def load_session(sid):
+    session = Session.query.filter_by(id=sid).first()
+    all_events = []
 
-        try:
-            session.delete(user)
-            session.commit()
-        except exc.IntegrityError as e:
-            print(e)
-            return json.dumps({'success': False}), 200, {'ContentType': 'application/json'}
+    for row in session.events:
+        events = decompress_event(row.data)
+        all_events.extend(events)
 
-    return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
+    return jsonify(all_events)
 
 
 @bp.route("/geo_locate", methods=['GET'])
@@ -148,31 +95,10 @@ def geo_locate():
     return out
 
 
-@bp.route("/get_stats", methods=['GET'])
-def get_stats():
-    delta = int(request.args.get('time_delta'))
-    cutoff_date = datetime.now() - timedelta(days=delta)
+@bp.route("/site/<path:filename>")
+def serve_dist_assets(website, filename):
+    site_path = os.path.join("dists", website, "dist")
+    if not os.path.exists(site_path):
+        abort(404)
 
-    query = (db.session.query(func.date(User.first_touch_time).label('date'), User.source,
-                              func.count(User.id).label('hits'))
-             .filter(User.first_touch_time >= cutoff_date)
-             .group_by(func.date(User.first_touch_time), User.source))
-
-    source_hits = query.all()
-
-    hits_dict = {}
-    for hit in source_hits:
-
-        if hit.source not in hits_dict:
-            hits_dict[hit.source] = []
-
-        if len(hits_dict[hit.source]) > delta:
-            continue
-
-        hits_dict[hit.source].append({'dateTime': hit.date, 'value': hit.hits})
-
-    # Generate last 20 days from today
-    today = datetime.today().date()
-    date_range = [(today - timedelta(days=i)).isoformat() for i in range(delta)]
-
-    return hits_dict, 200
+    return send_from_directory(site_path, filename)
