@@ -38,7 +38,7 @@ class Event(db.Model):
     sid: str = db.Column(db.String, db.ForeignKey("sessions.sid"), nullable=False)
     timestamp: int = db.Column(db.Integer, nullable=False)
 
-    data: str = db.Column(db.Text, nullable=False)  # JSON string
+    data: bytes = db.Column(db.LargeBinary, nullable=False)  # JSON string
 
 
 @dataclass

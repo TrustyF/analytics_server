@@ -7,6 +7,7 @@ beautifulsoup4==4.12.3
 billiard==4.2.1
 blinker==1.7.0
 bottle==0.12.25
+cachelib==0.9.0
 cachetools==5.5.0
 certifi==2024.2.2
 cffi==1.16.0
@@ -24,6 +25,7 @@ exceptiongroup==1.2.0
 fastapi==0.112.1
 fastapi-cli==0.0.5
 Flask==3.0.2
+Flask-Caching==2.3.0
 Flask-Cors==4.0.0
 Flask-SQLAlchemy==3.1.1
 google==3.0.0
@@ -88,4 +90,4 @@ wcwidth==0.2.13
 websockets==12.0
 Werkzeug==3.0.1
 youtube-search-python==1.6.6
-Flask-Caching
+zstandard==0.25.0

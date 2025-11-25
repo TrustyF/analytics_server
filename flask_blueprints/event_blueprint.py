@@ -1,8 +1,7 @@
-import base64
 import json
 import os
 import time
-import zlib
+import zstandard as zstd
 
 import requests
 from flask import Blueprint, request, jsonify, send_from_directory, abort
@@ -15,14 +14,21 @@ bp = Blueprint('event', __name__)
 
 
 def compress_event(event):
-    json_bytes = json.dumps(event).encode("utf-8")
-    compressed = zlib.compress(json_bytes)
-    return base64.b64encode(compressed).decode("utf-8")
+    json_bytes = json.dumps(event, separators=(',', ':')).encode('utf-8')
+
+    # Max compression with Zstandard
+    cctx = zstd.ZstdCompressor(level=19)
+    compressed = cctx.compress(json_bytes)
+
+    return compressed
 
 
 def decompress_event(s):
-    compressed = base64.b64decode(s)
-    return json.loads(zlib.decompress(compressed))
+    cctx = zstd.ZstdDecompressor()
+    json_bytes = cctx.decompress(s)
+    events = json.loads(json_bytes)
+
+    return events
 
 
 @bp.route("/add", methods=["POST"])
