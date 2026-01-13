@@ -1,5 +1,7 @@
 from dataclasses import dataclass, asdict
+from datetime import datetime
 
+from pygments.lexer import default
 from sqlalchemy.sql import func, text
 from db_loader import db
 import logging
@@ -14,11 +16,12 @@ class Session(db.Model):
     id: int = db.Column(db.Integer, primary_key=True)
     sid: str = db.Column(db.String, unique=True, nullable=False)
     source: str = db.Column(db.String, nullable=False)
-    created_at: str = db.Column(db.DateTime, default=func.now())
+    created_at: datetime = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
     country_id: int = db.Column(db.Integer, db.ForeignKey("countries.id"))
+    viewed: bool = db.Column(db.Boolean, default=False, nullable=False)
 
     country = db.relationship("Country", back_populates="sessions")
-    events = db.relationship("Event", backref="session", lazy=True)
+    events = db.relationship("Event", back_populates="session", lazy=True, cascade="all, delete-orphan", passive_deletes=True)
 
     def serialize(self):
         return {
@@ -26,7 +29,7 @@ class Session(db.Model):
             'sid': self.sid,
             'source': self.source,
             'created_at': self.created_at,
-            'geo': asdict(self.country)
+            'geo': asdict(self.country),
         }
 
 
@@ -35,10 +38,13 @@ class Event(db.Model):
     __tablename__ = "events"
 
     id: int = db.Column(db.Integer, primary_key=True)
-    sid: str = db.Column(db.String, db.ForeignKey("sessions.sid"), nullable=False)
+    session_id: int = db.Column(db.Integer, db.ForeignKey("sessions.id", ondelete="CASCADE"),
+                                nullable=False,
+                                index=True)
     timestamp: int = db.Column(db.Integer, nullable=False)
-
     data: bytes = db.Column(db.LargeBinary, nullable=False)  # JSON string
+
+    session = db.relationship("Session", back_populates="events")
 
 
 @dataclass

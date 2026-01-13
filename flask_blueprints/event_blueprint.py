@@ -1,10 +1,12 @@
 import json
 import os
 import time
+from datetime import datetime, timedelta, timezone
 import zstandard as zstd
 
 import requests
 from flask import Blueprint, request, jsonify, send_from_directory, abort
+from sqlalchemy import func
 
 from constants import GEO_API
 from db_loader import db
@@ -53,7 +55,7 @@ def add():
 
     # store the batch
     event_entry = Event(
-        sid=session_id,
+        session_id=session_id,
         timestamp=int(time.time()),
         data=compress_event(session_events)
     )
@@ -66,7 +68,15 @@ def add():
 
 @bp.route('/get_sessions')
 def get_sessions():
-    sessions = Session.query.all()
+    sessions = (
+        db.session.query(Session)
+        .outerjoin(Session.events)
+        .group_by(Session.id)
+        .having(
+            (func.max(Event.timestamp) - func.min(Event.timestamp)) >= 30
+        )
+        .all()
+    )
     all_sessions = [x.serialize() for x in sessions]
     return all_sessions
 
@@ -76,11 +86,25 @@ def load_session(sid):
     session = Session.query.filter_by(id=sid).first()
     all_events = []
 
-    for row in session.events:
-        events = decompress_event(row.data)
-        all_events.extend(events)
+    if session.events:
+        for row in session.events:
+            events = decompress_event(row.data)
+            all_events.extend(events)
 
     return jsonify(all_events)
+
+
+@bp.route("/event_cleanup")
+def event_cleanup():
+    cutoff = datetime.now(timezone.utc) - timedelta(days=3)
+    test = db.session.query(Session).filter(Session.created_at < cutoff).all()
+
+    print(test)
+
+    return 200
+
+
+# event_cleanup()
 
 
 @bp.route("/geo_locate", methods=['GET'])

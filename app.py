@@ -2,7 +2,7 @@ import os
 from flask import Flask
 from flask_cors import CORS
 from flask_caching import Cache
-from constants import MAIN_DIR, DB_NAME, DB_PASSWORD, DB_USERNAME
+from constants import MAIN_DIR
 from db_loader import db
 import logging
 
@@ -16,12 +16,6 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'database.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # To suppress a warning
 
-cache_config = {
-    "DEBUG": True,
-    "CACHE_TYPE": "SimpleCache",
-    "CACHE_DEFAULT_TIMEOUT": 1000
-}
-app.config.from_mapping(cache_config)
 cache = Cache(app)
 
 if dev_mode:
@@ -33,8 +27,6 @@ db.init_app(app)
 
 with app.app_context():
     from sql_models.event_model import *
-
-    # db.drop_all()
     db.create_all()
 
     from flask_blueprints import event_blueprint
