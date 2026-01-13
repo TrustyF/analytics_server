@@ -55,7 +55,7 @@ def add():
 
     # store the batch
     event_entry = Event(
-        session_id=session_id,
+        session_id=session.id,
         timestamp=int(time.time()),
         data=compress_event(session_events)
     )
