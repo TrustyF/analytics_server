@@ -2,14 +2,8 @@ from datetime import datetime, timedelta, timezone
 
 from db_loader import db
 from sql_models.event_model import Session, Event
-from flask_apscheduler import APScheduler
 from sqlalchemy import func
-
-scheduler = APScheduler()
-
-
-class SchedulerConfig:
-    SCHEDULER_API_ENABLED = False
+from app import app
 
 
 def event_cleanup():
@@ -29,3 +23,7 @@ def event_cleanup():
 
     db.session.commit()
     db.session.close()
+
+
+with app.app_context():
+    event_cleanup()
