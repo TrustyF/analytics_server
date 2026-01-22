@@ -15,7 +15,7 @@ def event_cleanup():
             db.session.query(Session.id)
             .outerjoin(Session.events)
             .group_by(Session.id)
-            .having((func.max(Event.timestamp) - func.min(Event.timestamp)) <= 10)
+            .having((func.max(Event.timestamp) - func.min(Event.timestamp)) <= 30)
             .all())
     ]
     if short_sessions:
