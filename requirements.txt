@@ -1,6 +1,7 @@
 amqp==5.2.0
 annotated-types==0.7.0
 anyio==4.3.0
+APScheduler==3.11.2
 async-timeout==4.0.3
 bcrypt==4.2.0
 beautifulsoup4==4.12.3
@@ -25,6 +26,7 @@ exceptiongroup==1.2.0
 fastapi==0.112.1
 fastapi-cli==0.0.5
 Flask==3.0.2
+Flask-APScheduler==1.13.1
 Flask-Caching==2.3.0
 Flask-Cors==4.0.0
 Flask-SQLAlchemy==3.1.1
@@ -82,6 +84,7 @@ starlette==0.38.2
 typer==0.12.3
 typing_extensions==4.8.0
 tzdata==2024.2
+tzlocal==5.3.1
 urllib3==2.2.1
 uvicorn==0.30.6
 vine==5.1.0

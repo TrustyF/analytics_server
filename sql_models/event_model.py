@@ -30,6 +30,7 @@ class Session(db.Model):
             'source': self.source,
             'created_at': self.created_at,
             'geo': asdict(self.country),
+            'viewed': self.viewed,
         }
 
 

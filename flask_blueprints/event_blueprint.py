@@ -1,18 +1,16 @@
 import json
-import os
 import time
-from datetime import datetime, timedelta, timezone
 import zstandard as zstd
 
 import requests
-from flask import Blueprint, request, jsonify, send_from_directory, abort
-from sqlalchemy import func
+from flask import Blueprint, request, jsonify
+from sqlalchemy import func, asc, desc
 
 from constants import GEO_API
 from db_loader import db
 from sql_models.event_model import Session, Event, Country
 
-bp = Blueprint('event', __name__)
+bp = Blueprint('session', __name__)
 
 
 def compress_event(event):
@@ -72,18 +70,43 @@ def get_sessions():
         db.session.query(Session)
         .outerjoin(Session.events)
         .group_by(Session.id)
-        .having(
-            (func.max(Event.timestamp) - func.min(Event.timestamp)) >= 30
-        )
         .all()
     )
     all_sessions = [x.serialize() for x in sessions]
     return all_sessions
 
 
-@bp.route("/session/<sid>")
+@bp.route('/get_session_info/<int:sid>')
+def get_session_info(sid):
+    session = Session.query.filter_by(id=sid).one_or_none()
+
+    if not session:
+        return {"error": "session not found"}, 404
+
+    # Find next session (newer)
+    next_sess = Session.query \
+        .filter(Session.id > sid) \
+        .order_by(Session.id.asc()) \
+        .first()
+
+    # Find previous session (older)
+    prev_sess = Session.query \
+        .filter(Session.id < sid) \
+        .order_by(Session.id.desc()) \
+        .first()
+
+    data = session.serialize()
+    data.update({
+        "next_session": next_sess.id if next_sess else None,
+        "prev_session": prev_sess.id if prev_sess else None
+    })
+
+    return data
+
+
+@bp.route("/get/<int:sid>")
 def load_session(sid):
-    session = Session.query.filter_by(id=sid).first()
+    session = Session.query.filter_by(id=sid).one_or_none()
     all_events = []
 
     if session.events:
@@ -94,17 +117,13 @@ def load_session(sid):
     return jsonify(all_events)
 
 
-@bp.route("/event_cleanup")
-def event_cleanup():
-    cutoff = datetime.now(timezone.utc) - timedelta(days=3)
-    test = db.session.query(Session).filter(Session.created_at < cutoff).all()
-
-    print(test)
-
-    return 200
-
-
-# event_cleanup()
+@bp.route("/set_viewed/<int:sid>")
+def set_viewed(sid):
+    db.session.query(Session).filter_by(id=sid) \
+        .update({Session.viewed: True}, synchronize_session=False)
+    db.session.commit()
+    db.session.close()
+    return "ok", 200
 
 
 @bp.route("/geo_locate", methods=['GET'])
@@ -123,12 +142,3 @@ def geo_locate():
            'country_flag': data['country_flag'], }
 
     return out
-
-
-@bp.route("/site/<path:filename>")
-def serve_dist_assets(website, filename):
-    site_path = os.path.join("dists", website, "dist")
-    if not os.path.exists(site_path):
-        abort(404)
-
-    return send_from_directory(site_path, filename)
