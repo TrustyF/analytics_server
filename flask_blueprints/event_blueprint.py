@@ -1,9 +1,11 @@
 import json
+import logging
 import time
 import zstandard as zstd
 
 import requests
 from flask import Blueprint, request, jsonify
+from requests import RequestException
 from sqlalchemy import func, asc, desc
 
 from constants import GEO_API
@@ -11,7 +13,17 @@ from db_loader import db
 from sql_models.event_model import Session, Event, Country
 
 bp = Blueprint('session', __name__)
+logger = logging.getLogger(__name__)
 
+FALLBACK_COUNTRY = {
+    'country_name': 'Nauru',
+    'state_prov': None,
+    'city': None,
+    'zipcode': None,
+    'country_code2': 'NR',
+    'country_code3': 'NRU',
+    'country_flag': '🇳🇷',
+}
 
 def compress_event(event):
     json_bytes = json.dumps(event, separators=(',', ':')).encode('utf-8')
@@ -130,15 +142,21 @@ def set_viewed(sid):
 def geo_locate():
     ip = request.args.get('ip')
 
-    req = requests.get(f'https://api.ipgeolocation.io/ipgeo?apiKey={GEO_API}&ip={ip}')
-    data = req.json()
+    try:
+        req = requests.get(f'https://api.ipgeolocation.io/ipgeo?apiKey={GEO_API}&ip={ip}', timeout=3)
+        req.raise_for_status()
+        data = req.json()
 
-    out = {'country_name': data['country_name'],
-           'state_prov': data['state_prov'],
-           'city': data['city'],
-           'zipcode': data['zipcode'],
-           'country_code2': data['country_code2'],
-           'country_code3': data['country_code3'],
-           'country_flag': data['country_flag'], }
+        logger.info(f'Geo located: {data}')
 
-    return out
+        return {'country_name': data['country_name'],
+                'state_prov': data['state_prov'],
+                'city': data['city'],
+                'zipcode': data['zipcode'],
+                'country_code2': data['country_code2'],
+                'country_code3': data['country_code3'],
+                'country_flag': data['country_flag'], }
+
+    except Exception as e:
+        logger.warning(f'geolocation failed: {e}')
+        return FALLBACK_COUNTRY
