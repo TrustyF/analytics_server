@@ -52,6 +52,7 @@ def add():
 
     # check if session exists
     session = Session.query.filter_by(sid=session_id, source=session_source).first()
+    session.update({Session.viewed: False}, synchronize_session=False)
 
     if not session:
         country = Country().find_or_create(event_geo=session_geo)
