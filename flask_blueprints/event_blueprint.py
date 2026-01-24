@@ -52,7 +52,6 @@ def add():
 
     # check if session exists
     session = Session.query.filter_by(sid=session_id, source=session_source).first()
-    session.update({Session.viewed: False}, synchronize_session=False)
 
     if not session:
         country = Country().find_or_create(event_geo=session_geo)
@@ -72,6 +71,10 @@ def add():
     )
 
     db.session.add(event_entry)
+    try:
+        session.update({Session.viewed: False}, synchronize_session=False)
+    except Exception as e:
+        logger.warning(f'Failed to update session viewed: {e}')
     db.session.commit()
 
     return jsonify({"status": "ok", "saved_events": len(session_events)})
