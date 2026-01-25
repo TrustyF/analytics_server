@@ -1,14 +1,19 @@
+import logging
 from datetime import datetime, timedelta, timezone
 
 from db_loader import db
 from sql_models.event_model import Session, Event
 from sqlalchemy import func
 from app import app
+logger = logging.getLogger(__name__)
 
 
 def event_cleanup():
     cutoff = datetime.now(timezone.utc) - timedelta(days=6)
-    db.session.query(Session).filter(Session.created_at < cutoff).delete(synchronize_session=False)
+
+    old_sessions = db.session.query(Session).filter(Session.created_at < cutoff)
+    logger.info(f'Deleting {len(old_sessions)} old sessions')
+    old_sessions.delete(synchronize_session=False)
 
     short_sessions = [
         sid for (sid,) in (
@@ -19,6 +24,7 @@ def event_cleanup():
             .all())
     ]
     if short_sessions:
+        logger.info(f'Deleting {len(short_sessions)} short sessions')
         db.session.query(Session).filter(Session.id.in_(short_sessions)).delete(synchronize_session=False)
 
     db.session.commit()
