@@ -25,6 +25,7 @@ FALLBACK_COUNTRY = {
     'country_flag': '🇳🇷',
 }
 
+
 def compress_event(event):
     json_bytes = json.dumps(event, separators=(',', ':')).encode('utf-8')
 
@@ -51,7 +52,10 @@ def add():
     session_events = request.json.get("events")
 
     # check if session exists
-    session = Session.query.filter_by(sid=session_id, source=session_source).first()
+    session = Session.query.filter_by(sid=session_id, source=session_source).one_or_none()
+
+    if session is None:
+        return "Failed to get session", 404
 
     if not session:
         country = Country().find_or_create(event_geo=session_geo)
@@ -61,7 +65,6 @@ def add():
             country_id=country.id
         )
         db.session.add(session)
-        db.session.commit()
 
     # store the batch
     event_entry = Event(
@@ -71,10 +74,12 @@ def add():
     )
 
     db.session.add(event_entry)
+
     try:
-        session.update({Session.viewed: False}, synchronize_session=False)
+        session.viewed = False
     except Exception as e:
         logger.warning(f'Failed to update session viewed: {e}')
+
     db.session.commit()
 
     return jsonify({"status": "ok", "saved_events": len(session_events)})
@@ -89,15 +94,15 @@ def get_sessions():
         .all()
     )
     all_sessions = [x.serialize() for x in sessions]
-    return all_sessions
+    return all_sessions, 200
 
 
 @bp.route('/get_session_info/<int:sid>')
 def get_session_info(sid):
     session = Session.query.filter_by(id=sid).one_or_none()
 
-    if not session:
-        return {"error": "session not found"}, 404
+    if session is None:
+        return "Failed to get session", 404
 
     # Find next session (newer)
     next_sess = Session.query \
@@ -117,12 +122,16 @@ def get_session_info(sid):
         "prev_session": prev_sess.id if prev_sess else None
     })
 
-    return data
+    return data, 200
 
 
 @bp.route("/get/<int:sid>")
 def load_session(sid):
     session = Session.query.filter_by(id=sid).one_or_none()
+
+    if session is None:
+        return "Failed to get session", 404
+
     all_events = []
 
     if session.events:
@@ -130,16 +139,21 @@ def load_session(sid):
             events = decompress_event(row.data)
             all_events.extend(events)
 
-    return jsonify(all_events)
+    return jsonify(all_events), 200
 
 
 @bp.route("/set_viewed/<int:sid>")
 def set_viewed(sid):
-    db.session.query(Session).filter_by(id=sid) \
-        .update({Session.viewed: True}, synchronize_session=False)
-    db.session.commit()
-    db.session.close()
-    return "ok", 200
+    session = db.session.query(Session).filter_by(id=sid).one_or_none()
+
+    if session is not None:
+        session.viewed = True
+        db.session.commit()
+        return "ok", 200
+
+    else:
+        logger.error(f'Failed to set viewed on {sid}')
+        return "Failed to process request", 400
 
 
 @bp.route("/geo_locate", methods=['GET'])
@@ -159,8 +173,8 @@ def geo_locate():
                 'zipcode': data['zipcode'],
                 'country_code2': data['country_code2'],
                 'country_code3': data['country_code3'],
-                'country_flag': data['country_flag'], }
+                'country_flag': data['country_flag'], }, 200
 
     except Exception as e:
         logger.warning(f'geolocation failed: {e}')
-        return FALLBACK_COUNTRY
+        return FALLBACK_COUNTRY, 200
