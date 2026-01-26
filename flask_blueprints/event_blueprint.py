@@ -55,9 +55,6 @@ def add():
     session = Session.query.filter_by(sid=session_id, source=session_source).one_or_none()
 
     if session is None:
-        return "Failed to get session", 404
-
-    if not session:
         country = Country().find_or_create(event_geo=session_geo)
         session = Session(
             sid=session_id,
