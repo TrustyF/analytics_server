@@ -162,7 +162,7 @@ def geo_locate():
         req.raise_for_status()
         data = req.json()
 
-        logger.info(f'Geo located: {data}')
+        logger.info(f'Geo located: {data["country_flag"]} {data["state_prov"]} {data["city"]}')
 
         return {'country_name': data['country_name'],
                 'state_prov': data['state_prov'],
