@@ -62,6 +62,12 @@ def add():
             country_id=country.id
         )
         db.session.add(session)
+        db.session.commit()
+
+    try:
+        session.viewed = False
+    except Exception as e:
+        logger.warning(f'Failed to update session viewed: {e}')
 
     # store the batch
     event_entry = Event(
@@ -71,12 +77,6 @@ def add():
     )
 
     db.session.add(event_entry)
-
-    try:
-        session.viewed = False
-    except Exception as e:
-        logger.warning(f'Failed to update session viewed: {e}')
-
     db.session.commit()
 
     return jsonify({"status": "ok", "saved_events": len(session_events)})
