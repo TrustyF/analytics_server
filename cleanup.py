@@ -9,10 +9,10 @@ logger = logging.getLogger(__name__)
 
 
 def event_cleanup():
-    cutoff = datetime.now(timezone.utc) - timedelta(days=6)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=4)
 
     old_sessions = db.session.query(Session).filter(Session.created_at < cutoff)
-    logger.info(f'Deleting {len(old_sessions)} old sessions')
+    logger.info(f'Deleting {len(old_sessions.all())} old sessions')
     old_sessions.delete(synchronize_session=False)
 
     short_sessions = [
