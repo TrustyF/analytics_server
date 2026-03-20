@@ -15,6 +15,10 @@ def event_cleanup():
     logger.info(f'Deleting {len(old_sessions.all())} old sessions')
     old_sessions.delete(synchronize_session=False)
 
+    viewed_sessions = db.session.query(Session).filter(Session.viewed == True)
+    logger.info(f'Deleting {len(viewed_sessions.all())} viewed sessions')
+    viewed_sessions.delete(synchronize_session=False)
+
     short_sessions = [
         sid for (sid,) in (
             db.session.query(Session.id)
