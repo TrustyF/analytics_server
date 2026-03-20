@@ -21,7 +21,7 @@ class Session(db.Model):
     viewed: bool = db.Column(db.Boolean, default=False, nullable=False)
 
     country = db.relationship("Country", back_populates="sessions")
-    events = db.relationship("Event", back_populates="session", lazy=True, cascade="all, delete-orphan", passive_deletes=True)
+    events = db.relationship("Event", back_populates="session", lazy=True)
 
     def serialize(self):
         return {

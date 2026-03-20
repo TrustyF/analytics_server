@@ -1,10 +1,10 @@
 import os
 from flask import Flask
 from flask_cors import CORS
-from flask_caching import Cache
 from constants import MAIN_DIR
 from db_loader import db
 import logging
+from sqlalchemy import event
 
 # check if using locally
 dev_mode = os.path.exists(os.path.join(MAIN_DIR, 'devmode.txt'))
@@ -20,6 +20,14 @@ if dev_mode:
     logging.basicConfig(level=logging.INFO)
 
 db.init_app(app)
+
+# enable foreign keys for correct delete
+@event.listens_for(db.engine, "connect")
+def _enable_sqlite_fk(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON;")
+    cursor.close()
+
 
 with app.app_context():
     from sql_models.event_model import *
