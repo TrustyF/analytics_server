@@ -3,8 +3,9 @@ from datetime import datetime, timedelta, timezone
 
 from db_loader import db
 from sql_models.event_model import Session, Event
-from sqlalchemy import func,text
+from sqlalchemy import func, text
 from app import app
+
 logger = logging.getLogger(__name__)
 
 
@@ -32,9 +33,9 @@ def event_cleanup():
         db.session.query(Session).filter(Session.id.in_(short_sessions)).delete(synchronize_session=False)
 
     db.session.commit()
-    db.session.close()
 
-        # reformat file to save space after deletions
+    # reformat file to save space after deletions
+    db.session.execute(text("REINDEX"))
     db.session.execute(text("VACUUM"))
     db.session.commit()
 
