@@ -35,9 +35,9 @@ def event_cleanup():
     db.session.commit()
 
     # reformat file to save space after deletions
-    db.session.execute(text("REINDEX"))
-    db.session.execute(text("VACUUM"))
-    db.session.commit()
+    # db.session.execute(text("REINDEX"))
+    # db.session.execute(text("VACUUM"))
+    # db.session.commit()
 
     db.session.close()
 
