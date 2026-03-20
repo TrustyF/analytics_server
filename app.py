@@ -21,15 +21,15 @@ if dev_mode:
 
 db.init_app(app)
 
-# enable foreign keys for correct delete
-@event.listens_for(db.engine, "connect")
-def _enable_sqlite_fk(dbapi_connection, connection_record):
-    cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA foreign_keys=ON;")
-    cursor.close()
-
-
 with app.app_context():
+
+    # enable foreign keys for correct delete
+    @event.listens_for(db.engine, "connect")
+    def _enable_sqlite_fk(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON;")
+        cursor.close()
+
     from sql_models.event_model import *
 
     db.create_all()
