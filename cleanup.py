@@ -32,6 +32,7 @@ def event_cleanup():
         db.session.query(Session).filter(Session.id.in_(short_sessions)).delete(synchronize_session=False)
 
     db.session.commit()
+    db.session.close()
 
         # reformat file to save space after deletions
     db.session.execute(text("VACUUM"))
