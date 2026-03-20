@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 from db_loader import db
 from sql_models.event_model import Session, Event
-from sqlalchemy import func
+from sqlalchemy import func,text
 from app import app
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,9 @@ def event_cleanup():
     if short_sessions:
         logger.info(f'Deleting {len(short_sessions)} short sessions')
         db.session.query(Session).filter(Session.id.in_(short_sessions)).delete(synchronize_session=False)
+
+    # reformat file to save space after deletions
+    db.session.execute(text("VACUUM"))
 
     db.session.commit()
     db.session.close()
