@@ -24,6 +24,7 @@ def event_cleanup():
         sid for (sid,) in (
             db.session.query(Session.id)
             .outerjoin(Session.events)
+            .filter(Session.source == 'houdini_icons')
             .group_by(Session.id)
             .having((func.max(Event.timestamp) - func.min(Event.timestamp)) <= 30)
             .all())
