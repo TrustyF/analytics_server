@@ -29,8 +29,7 @@ FALLBACK_COUNTRY = {
 def compress_event(event):
     json_bytes = json.dumps(event, separators=(',', ':')).encode('utf-8')
 
-    # Max compression with Zstandard
-    cctx = zstd.ZstdCompressor(level=19)
+    cctx = zstd.ZstdCompressor(level=6)
     compressed = cctx.compress(json_bytes)
 
     return compressed
@@ -62,12 +61,9 @@ def add():
             country_id=country.id
         )
         db.session.add(session)
-        db.session.commit()
+        db.session.flush()
 
-    try:
-        session.viewed = False
-    except Exception as e:
-        logger.warning(f'Failed to update session viewed: {e}')
+    session.viewed = False
 
     # store the batch
     event_entry = Event(
@@ -84,12 +80,7 @@ def add():
 
 @bp.route('/get_sessions')
 def get_sessions():
-    sessions = (
-        db.session.query(Session)
-        .outerjoin(Session.events)
-        .group_by(Session.id)
-        .all()
-    )
+    sessions = db.session.query(Session).all()
     all_sessions = [x.serialize() for x in sessions]
     return all_sessions, 200
 
