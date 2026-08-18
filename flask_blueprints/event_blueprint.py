@@ -43,6 +43,22 @@ def decompress_event(s):
     return events
 
 
+def normalize_event(e):
+    # older clients double-encoded each event as a JSON string
+    if isinstance(e, str):
+        try:
+            e = json.loads(e)
+        except json.JSONDecodeError:
+            logger.warning('Failed to parse event string, skipping')
+            return None
+
+    if not isinstance(e, dict):
+        logger.warning(f'Unexpected event type {type(e)}, skipping')
+        return None
+
+    return e
+
+
 def count_clicks(events):
     # rrweb IncrementalSnapshot (type 3) with MouseInteraction source (2) and Click type (2)
     return sum(
@@ -58,7 +74,7 @@ def add():
     session_id = request.json.get("sid")
     session_source = request.json.get("source")
     session_geo = request.json.get("geo")
-    session_events = request.json.get("events")
+    session_events = [e for e in map(normalize_event, request.json.get("events") or []) if e is not None]
 
     # check if session exists
     session = Session.query.filter_by(sid=session_id, source=session_source).one_or_none()
@@ -150,7 +166,7 @@ def load_session(sid):
     if session.events:
         for row in session.events:
             events = decompress_event(row.data)
-            all_events.extend(events)
+            all_events.extend(e for e in map(normalize_event, events) if e is not None)
 
     return jsonify(all_events), 200
 
