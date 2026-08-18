@@ -19,6 +19,7 @@ class Session(db.Model):
     created_at: datetime = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
     country_id: int = db.Column(db.Integer, db.ForeignKey("countries.id"))
     viewed: bool = db.Column(db.Boolean, default=False, nullable=False)
+    click_count: int = db.Column(db.Integer, default=0, nullable=False)
 
     country = db.relationship("Country", back_populates="sessions")
     events = db.relationship("Event", back_populates="session", lazy=True)
@@ -31,6 +32,7 @@ class Session(db.Model):
             'created_at': self.created_at,
             'geo': asdict(self.country),
             'viewed': self.viewed,
+            'click_count': self.click_count,
         }
 
 

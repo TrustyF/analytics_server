@@ -43,6 +43,16 @@ def decompress_event(s):
     return events
 
 
+def count_clicks(events):
+    # rrweb IncrementalSnapshot (type 3) with MouseInteraction source (2) and Click type (2)
+    return sum(
+        1 for e in events
+        if e.get('type') == 3
+        and e.get('data', {}).get('source') == 2
+        and e.get('data', {}).get('type') == 2
+    )
+
+
 @bp.route("/add", methods=["POST"])
 def add():
     session_id = request.json.get("sid")
@@ -58,12 +68,14 @@ def add():
         session = Session(
             sid=session_id,
             source=session_source,
-            country_id=country.id
+            country_id=country.id,
+            click_count=0
         )
         db.session.add(session)
         db.session.flush()
 
     session.viewed = False
+    session.click_count += count_clicks(session_events)
 
     # store the batch
     event_entry = Event(
@@ -81,7 +93,20 @@ def add():
 @bp.route('/get_sessions')
 def get_sessions():
     sessions = db.session.query(Session).all()
-    all_sessions = [x.serialize() for x in sessions]
+
+    durations = dict(
+        db.session.query(Session.id, func.max(Event.timestamp) - func.min(Event.timestamp))
+        .join(Session.events)
+        .group_by(Session.id)
+        .all()
+    )
+
+    all_sessions = []
+    for x in sessions:
+        serialized = x.serialize()
+        serialized['duration'] = durations.get(x.id, 0)
+        all_sessions.append(serialized)
+
     return all_sessions, 200
 
 
