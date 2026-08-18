@@ -34,13 +34,6 @@ with app.app_context():
 
     db.create_all()
 
-    # lightweight migration for columns added after initial create_all
-    with db.engine.connect() as conn:
-        existing_columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(sessions)")}
-        if 'click_count' not in existing_columns:
-            conn.exec_driver_sql("ALTER TABLE sessions ADD COLUMN click_count INTEGER NOT NULL DEFAULT 0")
-            conn.commit()
-
     from flask_blueprints import event_blueprint
 
     app.register_blueprint(event_blueprint.bp, url_prefix='/session')
