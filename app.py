@@ -21,6 +21,13 @@ if dev_mode:
 
 db.init_app(app)
 
+from log_handler import DBLogHandler
+
+db_log_handler = DBLogHandler()
+db_log_handler.setLevel(logging.WARNING)
+db_log_handler.setFormatter(logging.Formatter('%(message)s'))
+logging.getLogger().addHandler(db_log_handler)
+
 with app.app_context():
 
     # enable foreign keys for correct delete
@@ -31,6 +38,7 @@ with app.app_context():
         cursor.close()
 
     from sql_models.event_model import *
+    from sql_models.log_model import LogEntry
 
     db.create_all()
 

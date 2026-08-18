@@ -11,6 +11,7 @@ from sqlalchemy import func, asc, desc
 from constants import GEO_API
 from db_loader import db
 from sql_models.event_model import Session, Event, Country
+from sql_models.log_model import LogEntry
 
 bp = Blueprint('session', __name__)
 logger = logging.getLogger(__name__)
@@ -76,34 +77,55 @@ def add():
     session_geo = request.json.get("geo")
     session_events = [e for e in map(normalize_event, request.json.get("events") or []) if e is not None]
 
-    # check if session exists
-    session = Session.query.filter_by(sid=session_id, source=session_source).one_or_none()
+    try:
+        # check if session exists
+        session = Session.query.filter_by(sid=session_id, source=session_source).one_or_none()
 
-    if session is None:
-        country = Country().find_or_create(event_geo=session_geo)
-        session = Session(
-            sid=session_id,
-            source=session_source,
-            country_id=country.id,
-            click_count=0
+        if session is None:
+            country = Country().find_or_create(event_geo=session_geo)
+            session = Session(
+                sid=session_id,
+                source=session_source,
+                country_id=country.id,
+                click_count=0
+            )
+            db.session.add(session)
+            db.session.flush()
+
+        session.viewed = False
+        session.click_count += count_clicks(session_events)
+
+        # store the batch
+        event_entry = Event(
+            session_id=session.id,
+            timestamp=int(time.time()),
+            data=compress_event(session_events)
         )
-        db.session.add(session)
-        db.session.flush()
 
-    session.viewed = False
-    session.click_count += count_clicks(session_events)
-
-    # store the batch
-    event_entry = Event(
-        session_id=session.id,
-        timestamp=int(time.time()),
-        data=compress_event(session_events)
-    )
-
-    db.session.add(event_entry)
-    db.session.commit()
+        db.session.add(event_entry)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        # log a short, safe summary only - full tracebacks may contain paths
+        # and are visible in the server's own logs, not the exposed log feed
+        logger.error(f'Failed to create/update session for source={session_source}: {type(e).__name__}')
+        return jsonify({"status": "error"}), 500
 
     return jsonify({"status": "ok", "saved_events": len(session_events)})
+
+
+@bp.route('/get_logs')
+def get_logs():
+    limit = min(request.args.get('limit', 200, type=int), 500)
+
+    logs = (
+        db.session.query(LogEntry)
+        .order_by(LogEntry.id.desc())
+        .limit(limit)
+        .all()
+    )
+
+    return jsonify([log.serialize() for log in logs]), 200
 
 
 @bp.route('/get_sessions')
@@ -205,5 +227,8 @@ def geo_locate():
                 'country_flag': data['country_flag'], }, 200
 
     except Exception as e:
-        logger.warning(f'geolocation failed: {e}')
+        # don't log str(e) directly: for request errors it can include the
+        # full request URL, which contains the GEO_API key
+        status = getattr(getattr(e, 'response', None), 'status_code', None)
+        logger.warning(f'geolocation failed: {type(e).__name__}' + (f' (status {status})' if status else ''))
         return FALLBACK_COUNTRY, 200

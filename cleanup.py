@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 from db_loader import db
 from sql_models.event_model import Session, Event
+from sql_models.log_model import LogEntry
 from sqlalchemy import func, text
 from app import app
 
@@ -32,6 +33,11 @@ def event_cleanup():
     if short_sessions:
         logger.info(f'Deleting {len(short_sessions)} short sessions')
         db.session.query(Session).filter(Session.id.in_(short_sessions)).delete(synchronize_session=False)
+
+    log_cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    old_logs = db.session.query(LogEntry).filter(LogEntry.created_at < log_cutoff)
+    logger.info(f'Deleting {len(old_logs.all())} old log entries')
+    old_logs.delete(synchronize_session=False)
 
     db.session.commit()
 
